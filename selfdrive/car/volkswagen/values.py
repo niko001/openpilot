@@ -75,8 +75,9 @@ class CarControllerParams:
       self.LDW_STEP = 10                  # LDW_02 message frequency 10Hz
       self.ACC_HUD_STEP = 6               # ACC_02 message frequency 16Hz
       self.STEER_DRIVER_ALLOWANCE = 80    # Driver intervention threshold 0.8 Nm
-      self.STEER_DELTA_UP = 4             # Max HCA reached in 1.50s (STEER_MAX / (50Hz * 1.50))
-      self.STEER_DELTA_DOWN = 10          # Min HCA reached in 0.60s (STEER_MAX / (50Hz * 0.60))
+      self.STEER_MAX = 512
+      self.STEER_DELTA_UP = 10
+      self.STEER_DELTA_DOWN = 10
 
       if CP.transmissionType == TransmissionType.automatic:
         self.shifter_values = can_define.dv["Getriebe_11"]["GE_Fahrstufe"]
@@ -155,6 +156,15 @@ class VolkswagenPQPlatformConfig(VolkswagenMQBPlatformConfig):
 
   def init(self):
     self.flags |= VolkswagenFlags.PQ
+
+
+@dataclass
+class VolkswagenMQBEvoPlatformConfig(PlatformConfig):
+  dbc_dict: DbcDict = field(default_factory=lambda: dbc_dict('vw_mqbevo', None))
+  # Volkswagen uses the VIN WMI and chassis code to match in the absence of the comma power
+  # on camera-integrated cars, as we lose too many ECUs to reliably identify the vehicle
+  chassis_codes: set[str] = field(default_factory=set)
+  wmis: set[WMI] = field(default_factory=set)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -269,7 +279,7 @@ class CAR(Platforms):
     chassis_codes={"5G", "AU", "BA", "BE"},
     wmis={WMI.VOLKSWAGEN_MEXICO_CAR, WMI.VOLKSWAGEN_EUROPE_CAR},
   )
-  VOLKSWAGEN_GOLF_MK8 = VolkswagenMQBPlatformConfig(
+  VOLKSWAGEN_GOLF_MK8 = VolkswagenMQBEvoPlatformConfig(
     [
       VWCarDocs("Volkswagen Golf 2021-24"),
     ],

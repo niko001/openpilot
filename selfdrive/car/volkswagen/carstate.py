@@ -39,10 +39,10 @@ class CarState(CarStateBase):
     ret = car.CarState.new_message()
     # Update vehicle speed and acceleration from ABS wheel speeds.
     ret.wheelSpeeds = self.get_wheel_speeds(
-      pt_cp.vl["ESP_19"]["ESP_VL_Radgeschw_02"],
-      pt_cp.vl["ESP_19"]["ESP_VR_Radgeschw_02"],
-      pt_cp.vl["ESP_19"]["ESP_HL_Radgeschw_02"],
-      pt_cp.vl["ESP_19"]["ESP_HR_Radgeschw_02"],
+      pt_cp.vl["ESP_NEW_1"]["WHEEL_SPEED_FL"],
+      pt_cp.vl["ESP_NEW_1"]["WHEEL_SPEED_FR"],
+      pt_cp.vl["ESP_NEW_1"]["WHEEL_SPEED_RL"],
+      pt_cp.vl["ESP_NEW_1"]["WHEEL_SPEED_RR"],
     )
 
     ret.vEgoRaw = float(np.mean([ret.wheelSpeeds.fl, ret.wheelSpeeds.fr, ret.wheelSpeeds.rl, ret.wheelSpeeds.rr]))
@@ -54,7 +54,7 @@ class CarState(CarStateBase):
     ret.steeringRateDeg = pt_cp.vl["LWI_01"]["LWI_Lenkradw_Geschw"] * (1, -1)[int(pt_cp.vl["LWI_01"]["LWI_VZ_Lenkradw_Geschw"])]
     ret.steeringTorque = pt_cp.vl["LH_EPS_03"]["EPS_Lenkmoment"] * (1, -1)[int(pt_cp.vl["LH_EPS_03"]["EPS_VZ_Lenkmoment"])]
     ret.steeringPressed = abs(ret.steeringTorque) > self.CCP.STEER_DRIVER_ALLOWANCE
-    ret.yawRate = pt_cp.vl["ESP_02"]["ESP_Gierrate"] * (1, -1)[int(pt_cp.vl["ESP_02"]["ESP_VZ_Gierrate"])] * CV.DEG_TO_RAD
+    ret.yawRate = pt_cp.vl["ESP_NEW_2"]["YAW_RATE"] * (1, -1)[int(pt_cp.vl["ESP_NEW_2"]["YAW_RATE_SIGN"])] * CV.DEG_TO_RAD
     hca_status = self.CCP.hca_status_values.get(pt_cp.vl["LH_EPS_03"]["EPS_HCA_Status"])
     ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status)
 
