@@ -335,6 +335,20 @@ FW_VERSIONS = {
       b'\xf1\x875Q0907572S \xf1\x890780',
     ],
   },
+ CAR.VOLKSWAGEN_GOLF_MK8: {
+    (Ecu.transmission, 0x7e1, None): [
+      b'\xf1\x870GC906557AT\xf1\x894260',
+      b'\xf1\x870GC906555K \xf1\x894161',
+    ],
+    (Ecu.srs, 0x715, None): [
+      b'\xf1\x875WA959655M \xf1\x890636',
+      b'\xf1\x875WA959655H \xf1\x890636',
+    ],
+    (Ecu.fwdRadar, 0x757, None): [
+      b'\xf1\x875WA907572B \xf1\x890395',
+      b'\xf1\x875WA907572B \xf1\x890395',
+    ],
+  },
   CAR.VOLKSWAGEN_JETTA_MK7: {
     (Ecu.engine, 0x7e0, None): [
       b'\xf1\x8704E906024AK\xf1\x899937',

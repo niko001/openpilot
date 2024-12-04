@@ -269,6 +269,14 @@ class CAR(Platforms):
     chassis_codes={"5G", "AU", "BA", "BE"},
     wmis={WMI.VOLKSWAGEN_MEXICO_CAR, WMI.VOLKSWAGEN_EUROPE_CAR},
   )
+  VOLKSWAGEN_GOLF_MK8 = VolkswagenMQBPlatformConfig(
+    [
+      VWCarDocs("Volkswagen Golf 2021-24"),
+    ],
+    VolkswagenCarSpecs(mass=1409, wheelbase=2.63),
+    chassis_codes={"5G", "AU", "BA", "BE"},
+    wmis={WMI.VOLKSWAGEN_MEXICO_CAR, WMI.VOLKSWAGEN_EUROPE_CAR},
+  )
   VOLKSWAGEN_JETTA_MK7 = VolkswagenMQBPlatformConfig(
     [
       VWCarDocs("Volkswagen Jetta 2018-24"),
