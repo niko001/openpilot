@@ -3,6 +3,7 @@
 #include <QMouseEvent>
 
 #include "selfdrive/ui/qt/util.h"
+#include "common/params.h"
 
 void Sidebar::drawMetric(QPainter &p, const QPair<QString, QString> &label, QColor c, int y) {
   const QRect rect = {30, y, 240, 126};
@@ -24,7 +25,7 @@ void Sidebar::drawMetric(QPainter &p, const QPair<QString, QString> &label, QCol
   p.drawText(rect.adjusted(22, 0, 0, 0), Qt::AlignCenter, label.first + "\n" + label.second);
 }
 
-Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(false), settings_pressed(false) {
+Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(false), settings_pressed(false), params("") {
   home_img = loadPixmap("../assets/images/button_home.png", home_btn.size());
   flag_img = loadPixmap("../assets/images/button_flag.png", home_btn.size());
   settings_img = loadPixmap("../assets/images/button_settings.png", settings_btn.size(), Qt::IgnoreAspectRatio);
@@ -58,13 +59,16 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     update();
   }
   if (onroad && home_btn.contains(event->pos())) {
-    MessageBuilder msg;
-    msg.initEvent().initUserFlag();
-    pm->send("userFlag", msg);
+    //MessageBuilder msg;
+    //msg.initEvent().initUserFlag();
+    //pm->send("userFlag", msg);
   } else if (settings_btn.contains(event->pos())) {
     emit openSettings();
   } else if (!onroad && home_btn.contains(event->pos())) {
-    emit openSettings();
+    // Toggle OpenpilotEnabledToggle
+    bool enabled = params.getBool("OpenpilotEnabledToggle");
+    params.putBool("OpenpilotEnabledToggle", !enabled);
+    update();
   }
 }
 
@@ -125,11 +129,11 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.setOpacity(onroad && flag_pressed ? 0.65 : 1.0);
   //p.drawPixmap(home_btn.x(), home_btn.y(), onroad ? flag_img : home_img);
   if (onroad) {
-    //If OP enabled, use op_enabled_img, otherwise op_disabled_img
-    //TODO: Check if enabled or disabled
-    p.drawPixmap(home_btn.x(), home_btn.y(), op_disabled_img);
+    bool enabled = params.getBool("OpenpilotEnabledToggle");
+    p.drawPixmap(home_btn.x(), home_btn.y(), enabled ? op_enabled_img : op_disabled_img);
   } else {
-    p.drawPixmap(home_btn.x(), home_btn.y(), op_disabled_img);
+    bool enabled = params.getBool("OpenpilotEnabledToggle");
+    p.drawPixmap(home_btn.x(), home_btn.y(), enabled ? op_enabled_img : op_disabled_img);
   }
   p.setOpacity(1.0);
 
