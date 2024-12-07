@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QTranslator>
 
+#include "common/params.h"
 #include "system/hardware/hw.h"
 #include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/util.h"
@@ -22,6 +23,10 @@ int main(int argc, char *argv[]) {
 
   QApplication a(argc, argv);
   a.installTranslator(&translator);
+
+  //On boot, always set OP to disabled
+  Params params;
+  params.putBool("OpenpilotEnabledToggle", false);
 
   MainWindow w;
   setMainWindow(&w);
