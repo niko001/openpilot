@@ -35,7 +35,7 @@ protected:
   void mouseReleaseEvent(QMouseEvent *event) override;
   void drawMetric(QPainter &p, const QPair<QString, QString> &label, QColor c, int y);
 
-  QPixmap home_img, flag_img, settings_img;
+  QPixmap home_img, flag_img, settings_img, op_enabled_img, op_disabled_img;
   bool onroad, flag_pressed, settings_pressed;
   const QMap<cereal::DeviceState::NetworkType, QString> network_type = {
     {cereal::DeviceState::NetworkType::NONE, tr("--")},
