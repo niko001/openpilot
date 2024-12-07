@@ -28,6 +28,8 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent), onroad(false), flag_pressed(
   home_img = loadPixmap("../assets/images/button_home.png", home_btn.size());
   flag_img = loadPixmap("../assets/images/button_flag.png", home_btn.size());
   settings_img = loadPixmap("../assets/images/button_settings.png", settings_btn.size(), Qt::IgnoreAspectRatio);
+  op_enabled_img = loadPixmap("../assets/images/button_op_enabled.png", home_btn.size());
+  op_disabled_img = loadPixmap("../assets/images/button_op_disabled.png", home_btn.size());
 
   connect(this, &Sidebar::valueChanged, [=] { update(); });
 
@@ -60,6 +62,8 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     msg.initEvent().initUserFlag();
     pm->send("userFlag", msg);
   } else if (settings_btn.contains(event->pos())) {
+    emit openSettings();
+  } else if (!onroad && home_btn.contains(event->pos())) {
     emit openSettings();
   }
 }
@@ -119,7 +123,14 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.setOpacity(settings_pressed ? 0.65 : 1.0);
   p.drawPixmap(settings_btn.x(), settings_btn.y(), settings_img);
   p.setOpacity(onroad && flag_pressed ? 0.65 : 1.0);
-  p.drawPixmap(home_btn.x(), home_btn.y(), onroad ? flag_img : home_img);
+  //p.drawPixmap(home_btn.x(), home_btn.y(), onroad ? flag_img : home_img);
+  if (onroad) {
+    //If OP enabled, use op_enabled_img, otherwise op_disabled_img
+    //TODO: Check if enabled or disabled
+    p.drawPixmap(home_btn.x(), home_btn.y(), op_disabled_img);
+  } else {
+    p.drawPixmap(home_btn.x(), home_btn.y(), op_disabled_img);
+  }
   p.setOpacity(1.0);
 
   // network
