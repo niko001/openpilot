@@ -6,6 +6,7 @@
 #include <QMap>
 
 #include "selfdrive/ui/ui.h"
+#include "common/params.h"
 
 typedef QPair<QPair<QString, QString>, QColor> ItemStatus;
 Q_DECLARE_METATYPE(ItemStatus);
