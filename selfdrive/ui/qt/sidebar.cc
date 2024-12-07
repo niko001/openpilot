@@ -59,16 +59,11 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     update();
   }
   if (onroad && home_btn.contains(event->pos())) {
-    //MessageBuilder msg;
-    //msg.initEvent().initUserFlag();
-    //pm->send("userFlag", msg);
-  } else if (settings_btn.contains(event->pos())) {
-    emit openSettings();
-  } else if (!onroad && home_btn.contains(event->pos())) {
-    //TODO: Move this to "if (onroad && home_btn.contains(event->pos())) {" above (and don't do anything in offroad mode)
     bool enabled = params.getBool("OpenpilotEnabledToggle");
     params.putBool("OpenpilotEnabledToggle", !enabled);
     update();
+  } else if (settings_btn.contains(event->pos())) {
+    emit openSettings();
   }
 }
 
@@ -133,9 +128,7 @@ void Sidebar::paintEvent(QPaintEvent *event) {
     bool enabled = params.getBool("OpenpilotEnabledToggle");
     p.drawPixmap(home_btn.x(), home_btn.y(), enabled ? op_enabled_img : op_disabled_img);
   } else {
-    //TODO: In offroad mode, this should always be home_img
-    bool enabled = params.getBool("OpenpilotEnabledToggle");
-    p.drawPixmap(home_btn.x(), home_btn.y(), enabled ? op_enabled_img : op_disabled_img);
+    p.drawPixmap(home_btn.x(), home_btn.y(), home_img);
   }
   p.setOpacity(1.0);
 
