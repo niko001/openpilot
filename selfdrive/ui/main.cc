@@ -25,8 +25,8 @@ int main(int argc, char *argv[]) {
   a.installTranslator(&translator);
 
   //On boot, always set OP to disabled
-  Params params;
-  params.putBool("OpenpilotEnabledToggle", false);
+  //Params params;
+  //params.putBool("OpenpilotEnabledToggle", false);
 
   MainWindow w;
   setMainWindow(&w);
