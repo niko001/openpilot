@@ -59,9 +59,9 @@ class CarState(CarStateBase):
     #ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status)
 
     # VW Emergency Assist status tracking and mitigation
-    self.eps_stock_values = pt_cp.vl["LH_EPS_03"]
-    if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-      ret.carFaultedNonCritical = bool(cam_cp.vl["HCA_01"]["EA_Ruckfreigabe"]) or cam_cp.vl["HCA_01"]["EA_ACC_Sollstatus"] > 0
+    #self.eps_stock_values = pt_cp.vl["LH_EPS_03"]
+    #if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+    #  ret.carFaultedNonCritical = bool(cam_cp.vl["HCA_01"]["EA_Ruckfreigabe"]) or cam_cp.vl["HCA_01"]["EA_ACC_Sollstatus"] > 0
 
     # Update gas, brakes, and gearshift.
     ret.gas = pt_cp.vl["MOTOR_NEW_1"]["ACCEL_PEDAL"] / 100.0
