@@ -137,3 +137,6 @@ class CarInterface(CarInterfaceBase):
 
     return ret
 
+  def apply(self, c, now_nanos):
+    new_actuators, can_sends, self.eps_timer_soft_disable_alert = self.CC.update(c, self.CS, self.ext_bus, now_nanos)
+    return new_actuators, can_sends
