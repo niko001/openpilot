@@ -50,22 +50,28 @@ class CarInterface(CarInterfaceBase):
     else:
       # Set global MQB parameters
       ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.volkswagen)]
-      ret.enableBsm = 0x30F in fingerprint[0]  # SWA_01
+      #ret.enableBsm = 0x30F in fingerprint[0]  # SWA_01
+      # TODO: locate BSM message
+      ret.enableBsm = False
 
-      if 0xAD in fingerprint[0] or docs:  # Getriebe_11
-        ret.transmissionType = TransmissionType.automatic
-      elif 0x187 in fingerprint[0]:  # EV_Gearshift
-        ret.transmissionType = TransmissionType.direct
-      else:
-        ret.transmissionType = TransmissionType.manual
+      #if 0xAD in fingerprint[0] or docs:  # Getriebe_11
+      #  ret.transmissionType = TransmissionType.automatic
+      #elif 0x187 in fingerprint[0]:  # EV_Gearshift
+      #  ret.transmissionType = TransmissionType.direct
+      #else:
+      #  ret.transmissionType = TransmissionType.manual
+      # TODO: locate gear position message
+      ret.transmissionType = TransmissionType.automatic
 
-      if any(msg in fingerprint[1] for msg in (0x40, 0x86, 0xB2, 0xFD)):  # Airbag_01, LWI_01, ESP_19, ESP_21
-        ret.networkLocation = NetworkLocation.gateway
-      else:
-        ret.networkLocation = NetworkLocation.fwdCamera
+      #if any(msg in fingerprint[1] for msg in (0x40, 0x86, 0xB2, 0xFD)):  # Airbag_01, LWI_01, ESP_19, ESP_21
+      #  ret.networkLocation = NetworkLocation.gateway
+      #else:
+      #  ret.networkLocation = NetworkLocation.fwdCamera
+      # TODO: gateway harness not yet developed
+      ret.networkLocation = NetworkLocation.fwdCamera
 
-      if 0x126 in fingerprint[2]:  # HCA_01
-        ret.flags |= VolkswagenFlags.STOCK_HCA_PRESENT.value
+      #if 0x126 in fingerprint[2]:  # HCA_01
+      #  ret.flags |= VolkswagenFlags.STOCK_HCA_PRESENT.value
 
     # Global lateral tuning defaults, can be overridden per-vehicle
 
