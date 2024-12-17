@@ -234,8 +234,18 @@ void UIState::updateStatus() {
       new_status = controls_state.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
     }
 
-    // Start animation when transitioning from disengaged to engaged
-    if (status == STATUS_DISENGAGED && new_status == STATUS_ENGAGED) {
+    // Get the events that caused the state transition
+    const auto car_events = controls_state.getEvents();
+    bool button_enable = false;
+    for (const auto& event : car_events) {
+      if (event.name == cereal::CarEvent::EventName::buttonEnable) {
+        button_enable = true;
+        break;
+      }
+    }
+
+    // Start animation only on explicit button enable
+    if (status != STATUS_ENGAGED && new_status == STATUS_ENGAGED && button_enable) {
       scene.engagement_animation_active = true;
       scene.engagement_animation_start = nanos_since_boot();
       scene.engagement_animation_progress = 0.0;
