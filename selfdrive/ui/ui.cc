@@ -15,6 +15,7 @@
 
 #define BACKLIGHT_DT 0.05
 #define BACKLIGHT_TS 10.00
+#define ANIMATION_DURATION_MS 2000 // 2 seconds for full animation
 
 // Projects a point in car to space to the corresponding point in full frame
 // image space.
@@ -229,7 +230,29 @@ void UIState::updateStatus() {
     if (state == cereal::ControlsState::OpenpilotState::PRE_ENABLED || state == cereal::ControlsState::OpenpilotState::OVERRIDING) {
       status = STATUS_OVERRIDE;
     } else {
-      status = controls_state.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
+      UIStatus new_status = controls_state.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
+
+      // Start animation when transitioning from disengaged to engaged
+      if (status == STATUS_DISENGAGED && new_status == STATUS_ENGAGED) {
+        scene.engagement_animation_active = true;
+        scene.engagement_animation_start = nanos_since_boot();
+        scene.engagement_animation_progress = 0.0;
+      }
+
+      status = new_status;
+    }
+  }
+
+  // Update animation progress
+  if (scene.engagement_animation_active) {
+    uint64_t current_time = nanos_since_boot();
+    float progress = (float)(current_time - scene.engagement_animation_start) / (ANIMATION_DURATION_MS * 1e6);
+
+    if (progress >= 1.0) {
+      scene.engagement_animation_active = false;
+      scene.engagement_animation_progress = 0.0;
+    } else {
+      scene.engagement_animation_progress = progress;
     }
   }
 

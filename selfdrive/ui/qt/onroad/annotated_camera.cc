@@ -1,4 +1,3 @@
-
 #include "selfdrive/ui/qt/onroad/annotated_camera.h"
 
 #include <QPainter>
@@ -24,6 +23,7 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget* par
   main_layout->addWidget(map_settings_btn, 0, Qt::AlignBottom | Qt::AlignRight);
 
   dm_img = loadPixmap("../assets/img_driver_face.png", {img_size + 5, img_size + 5});
+  car_img = loadPixmap("../assets/img_mario_side_view.png", {128, 128}); // Load car image with fixed size
 }
 
 void AnnotatedCameraWidget::updateState(const UIState &s) {
@@ -428,6 +428,24 @@ void AnnotatedCameraWidget::paintGL() {
   }
 
   drawHud(painter);
+
+  // Draw car animation when transitioning from disengaged to engaged
+  if (s->scene.engagement_animation_active) {
+    painter.save();
+
+    // Calculate car position based on animation progress
+    float progress = s->scene.engagement_animation_progress;
+    int car_width = car_img.width();
+    int start_x = -car_width; // Start from outside left edge
+    int end_x = width() + car_width; // End at outside right edge
+    int x = start_x + (end_x - start_x) * progress;
+    int y = height() - car_img.height() - 20; // 20px padding from bottom
+
+    // Draw the car image
+    painter.drawPixmap(x, y, car_img);
+
+    painter.restore();
+  }
 
   double cur_draw_t = millis_since_boot();
   double dt = cur_draw_t - prev_draw_t;

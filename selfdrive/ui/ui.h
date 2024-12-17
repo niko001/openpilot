@@ -95,6 +95,11 @@ typedef struct UIScene {
   float driver_pose_coss[3];
   vec3 face_kpts_draw[std::size(default_face_kpts_3d)];
 
+  // Engagement animation
+  bool engagement_animation_active = false;
+  float engagement_animation_progress = 0.0;
+  uint64_t engagement_animation_start = 0;
+
   cereal::LongitudinalPersonality personality;
 
   float light_sensor = -1;

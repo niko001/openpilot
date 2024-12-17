@@ -21,6 +21,7 @@ private:
   QVBoxLayout *main_layout;
   ExperimentalButton *experimental_btn;
   QPixmap dm_img;
+  QPixmap car_img;  // Added for car animation
   float speed;
   QString speedUnit;
   float setSpeed;
