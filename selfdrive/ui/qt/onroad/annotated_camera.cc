@@ -23,7 +23,7 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget* par
   main_layout->addWidget(map_settings_btn, 0, Qt::AlignBottom | Qt::AlignRight);
 
   dm_img = loadPixmap("../assets/img_driver_face.png", {img_size + 5, img_size + 5});
-  car_img = loadPixmap("../assets/img_mario_side_view.png", {128, 128}); // Load car image with fixed size
+  car_img = loadPixmap("../assets/img_mario_side_view.png", {256, 256}); // Doubled size from 128x128 to 256x256
 }
 
 void AnnotatedCameraWidget::updateState(const UIState &s) {
@@ -468,3 +468,4 @@ void AnnotatedCameraWidget::showEvent(QShowEvent *event) {
   ui_update_params(uiState());
   prev_draw_t = millis_since_boot();
 }
+
