@@ -241,7 +241,7 @@ void UIState::updateStatus() {
                        (current_time - scene.engagement_animation_start) > 10e9); // 10 seconds in nanoseconds
 
     // Start animation when transitioning from disengaged to engaged
-    if (status != STATUS_ENGAGED && new_status == STATUS_ENGAGED && can_animate) {
+    if (status == STATUS_DISENGAGED && new_status == STATUS_OVERRIDE) {
       scene.engagement_animation_active = true;
       scene.engagement_animation_start = current_time;
       scene.engagement_animation_progress = 0.0;
