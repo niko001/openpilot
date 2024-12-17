@@ -224,23 +224,30 @@ void ui_update_params(UIState *s) {
 }
 
 void UIState::updateStatus() {
-  UIStatus prev_status = status;  // Store previous status
-
   if (scene.started && sm->updated("controlsState")) {
     auto controls_state = (*sm)["controlsState"].getControlsState();
     auto state = controls_state.getState();
+    UIStatus new_status;
     if (state == cereal::ControlsState::OpenpilotState::PRE_ENABLED || state == cereal::ControlsState::OpenpilotState::OVERRIDING) {
-      status = STATUS_OVERRIDE;
+      new_status = STATUS_OVERRIDE;
     } else {
-      status = controls_state.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
+      new_status = controls_state.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
     }
 
     // Start animation when transitioning from disengaged to engaged
-    if (prev_status == STATUS_DISENGAGED && status == STATUS_ENGAGED) {
+    if (status == STATUS_DISENGAGED && new_status == STATUS_ENGAGED) {
       scene.engagement_animation_active = true;
       scene.engagement_animation_start = nanos_since_boot();
       scene.engagement_animation_progress = 0.0;
     }
+
+    // Reset animation state when transitioning away from engaged
+    if (status == STATUS_ENGAGED && new_status != STATUS_ENGAGED) {
+      scene.engagement_animation_active = false;
+      scene.engagement_animation_progress = 0.0;
+    }
+
+    status = new_status;
   }
 
   // Update animation progress
@@ -261,6 +268,9 @@ void UIState::updateStatus() {
     if (scene.started) {
       status = STATUS_DISENGAGED;
       scene.started_frame = sm->frame;
+      // Reset animation state when starting
+      scene.engagement_animation_active = false;
+      scene.engagement_animation_progress = 0.0;
     }
     started_prev = scene.started;
     scene.world_objects_visible = false;
