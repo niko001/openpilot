@@ -224,22 +224,22 @@ void ui_update_params(UIState *s) {
 }
 
 void UIState::updateStatus() {
+  UIStatus prev_status = status;  // Store previous status
+
   if (scene.started && sm->updated("controlsState")) {
     auto controls_state = (*sm)["controlsState"].getControlsState();
     auto state = controls_state.getState();
     if (state == cereal::ControlsState::OpenpilotState::PRE_ENABLED || state == cereal::ControlsState::OpenpilotState::OVERRIDING) {
       status = STATUS_OVERRIDE;
     } else {
-      UIStatus new_status = controls_state.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
+      status = controls_state.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
+    }
 
-      // Start animation when transitioning from disengaged to engaged
-      if (status == STATUS_DISENGAGED && new_status == STATUS_ENGAGED) {
-        scene.engagement_animation_active = true;
-        scene.engagement_animation_start = nanos_since_boot();
-        scene.engagement_animation_progress = 0.0;
-      }
-
-      status = new_status;
+    // Start animation when transitioning from disengaged to engaged
+    if (prev_status == STATUS_DISENGAGED && status == STATUS_ENGAGED) {
+      scene.engagement_animation_active = true;
+      scene.engagement_animation_start = nanos_since_boot();
+      scene.engagement_animation_progress = 0.0;
     }
   }
 
