@@ -236,9 +236,6 @@ void UIState::updateStatus() {
 
     // Check if we should show the animation (10 second cooldown)
     uint64_t current_time = nanos_since_boot();
-    bool can_animate = !scene.engagement_animation_active &&
-                      (scene.engagement_animation_start == 0 || // First time
-                       (current_time - scene.engagement_animation_start) > 10e9); // 10 seconds in nanoseconds
 
     // Start animation when transitioning from disengaged to engaged
     if (status == STATUS_DISENGAGED && new_status == STATUS_OVERRIDE) {
