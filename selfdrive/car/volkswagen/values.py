@@ -75,7 +75,7 @@ class CarControllerParams:
       self.LDW_STEP = 10                  # LDW_02 message frequency 10Hz
       self.ACC_HUD_STEP = 6               # ACC_02 message frequency 16Hz
       self.STEER_DRIVER_ALLOWANCE = 80    # Driver intervention threshold 0.8 Nm
-      self.STEER_MAX = 600
+      self.STEER_MAX = 512                # Adjusted to stay within safety limits
       self.STEER_DELTA_UP = 12
       self.STEER_DELTA_DOWN = 12
 
