@@ -4,9 +4,11 @@
 
 #include <QFrame>
 #include <QMap>
+#include <QWidget>
 
 #include "common/params.h"
 #include "selfdrive/ui/ui.h"
+#include "selfdrive/ui/qt/widgets/controls.h"
 
 typedef QPair<QPair<QString, QString>, QColor> ItemStatus;
 Q_DECLARE_METATYPE(ItemStatus);
