@@ -123,6 +123,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"ExperimentalMode", PERSISTENT},
     {"ExperimentalModeConfirmed", PERSISTENT},
     {"FirmwareQueryDone", CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION},
+    {"ForceOffroad", CLEAR_ON_MANAGER_START},
     {"ForcePowerDown", PERSISTENT},
     {"GitBranch", PERSISTENT},
     {"GitCommit", PERSISTENT},

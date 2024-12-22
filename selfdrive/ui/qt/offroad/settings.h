@@ -52,10 +52,12 @@ private slots:
   void poweroff();
   void reboot();
   void updateCalibDescription();
+  void forceoffroad();
 
 private:
   Params params;
   ButtonControl *pair_device;
+  QPushButton *offroad_btn;
 };
 
 class TogglesPanel : public ListWidget {

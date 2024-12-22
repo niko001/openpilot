@@ -208,7 +208,7 @@ static void update_state(UIState *s) {
   } else if (!sm.allAliveAndValid({"wideRoadCameraState"})) {
     scene.light_sensor = -1;
   }
-  scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;
+  scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition && !Params().getBool("ForceOffroad");
 
   scene.world_objects_visible = scene.world_objects_visible ||
                                 (scene.started &&

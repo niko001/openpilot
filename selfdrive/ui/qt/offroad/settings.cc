@@ -276,6 +276,21 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   QHBoxLayout *power_layout = new QHBoxLayout();
   power_layout->setSpacing(30);
 
+  offroad_btn = new QPushButton(params.getBool("ForceOffroad") ? tr("Unforce Offroad") : tr("Force Offroad"));
+  offroad_btn->setObjectName("offroad_btn");
+  offroad_btn->setStyleSheet(QString(R"(
+    QPushButton {
+      height: 120px;
+      border-radius: 15px;
+      background-color: %1;
+    }
+    QPushButton:pressed {
+      background-color: %2;
+    }
+  )").arg(params.getBool("ForceOffroad") ? "#393939" : "#E22C2C",
+          params.getBool("ForceOffroad") ? "#4a4a4a" : "#FF2424"));
+  QObject::connect(offroad_btn, &QPushButton::clicked, this, &DevicePanel::forceoffroad);
+
   QPushButton *reboot_btn = new QPushButton(tr("Reboot"));
   reboot_btn->setObjectName("reboot_btn");
   power_layout->addWidget(reboot_btn);
@@ -296,7 +311,30 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     #poweroff_btn { height: 120px; border-radius: 15px; background-color: #E22C2C; }
     #poweroff_btn:pressed { background-color: #FF2424; }
   )");
-  addItem(power_layout);
+  QVBoxLayout *buttons_layout = new QVBoxLayout();
+  buttons_layout->setSpacing(24);
+  buttons_layout->addLayout(power_layout);
+  buttons_layout->addWidget(offroad_btn);
+  addItem(buttons_layout);
+
+  // Update offroad button state when the panel becomes visible
+  QObject::connect(this, &QWidget::visibleChanged, [=](bool visible) {
+    if (visible) {
+      bool force_offroad = params.getBool("ForceOffroad");
+      offroad_btn->setText(force_offroad ? tr("Unforce Offroad") : tr("Force Offroad"));
+      offroad_btn->setStyleSheet(QString(R"(
+        QPushButton {
+          height: 120px;
+          border-radius: 15px;
+          background-color: %1;
+        }
+        QPushButton:pressed {
+          background-color: %2;
+        }
+      )").arg(force_offroad ? "#393939" : "#E22C2C",
+              force_offroad ? "#4a4a4a" : "#FF2424"));
+    }
+  });
 }
 
 void DevicePanel::updateCalibDescription() {
@@ -347,6 +385,43 @@ void DevicePanel::poweroff() {
   } else {
     ConfirmationDialog::alert(tr("Disengage to Power Off"), this);
   }
+}
+
+void DevicePanel::forceoffroad() {
+  if (!uiState()->engaged()) {
+    if (params.getBool("ForceOffroad")) {
+      if (ConfirmationDialog::confirm(tr("Are you sure you want to unforce offroad?"), tr("Unforce"), this)) {
+        // Check engaged again in case it changed while the dialog was open
+        if (!uiState()->engaged()) {
+          params.remove("ForceOffroad");
+        }
+      }
+    } else {
+      if (ConfirmationDialog::confirm(tr("Are you sure you want to force offroad?"), tr("Force"), this)) {
+        // Check engaged again in case it changed while the dialog was open
+        if (!uiState()->engaged()) {
+          params.putBool("ForceOffroad", true);
+        }
+      }
+    }
+  } else {
+    ConfirmationDialog::alert(tr("Disengage to Force Offroad"), this);
+  }
+
+  // Update button state
+  bool force_offroad = params.getBool("ForceOffroad");
+  offroad_btn->setText(force_offroad ? tr("Unforce Offroad") : tr("Force Offroad"));
+  offroad_btn->setStyleSheet(QString(R"(
+    QPushButton {
+      height: 120px;
+      border-radius: 15px;
+      background-color: %1;
+    }
+    QPushButton:pressed {
+      background-color: %2;
+    }
+  )").arg(force_offroad ? "#393939" : "#E22C2C",
+          force_offroad ? "#4a4a4a" : "#FF2424"));
 }
 
 void DevicePanel::showEvent(QShowEvent *event) {
