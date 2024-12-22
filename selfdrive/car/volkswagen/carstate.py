@@ -84,7 +84,10 @@ class CarState(CarStateBase):
     #    ret.gearShifter = GearShifter.reverse
     #  else:
     #    ret.gearShifter = GearShifter.drive
-    ret.gearShifter = GearShifter.drive
+    if bool(pt_cp.vl["Gateway_72"]["BCM1_Rueckfahrlicht_Schalter"]):
+      ret.gearShifter = GearShifter.reverse
+    else:
+      ret.gearShifter = GearShifter.drive
 
     # Update door and trunk/hatch lid open status.
     ret.doorOpen = any([pt_cp.vl["Gateway_72"]["ZV_FT_offen"],
