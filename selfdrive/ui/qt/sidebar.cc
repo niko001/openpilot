@@ -58,9 +58,18 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     flag_pressed = settings_pressed = false;
     update();
   }
-  if (onroad && home_btn.contains(event->pos())) {
-    bool enabled = params.getBool("OpenpilotEnabledToggle");
-    params.putBool("OpenpilotEnabledToggle", !enabled);
+  if (home_btn.contains(event->pos())) {
+    bool forced_offroad = params.getBool("ForceOffroad");
+    if (!uiState()->engaged()) {
+      if (params.getBool("ForceOffroad")) {
+        params.remove("ForceOffroad");
+      } else {
+        params.putBool("ForceOffroad", true);
+      }
+    } else {
+      ConfirmationDialog::alert(tr("Disengage to force disable nikopilot"), this);
+    }
+
     update();
   } else if (settings_btn.contains(event->pos())) {
     emit openSettings();
@@ -124,11 +133,12 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.drawPixmap(settings_btn.x(), settings_btn.y(), settings_img);
   p.setOpacity(onroad && flag_pressed ? 0.65 : 1.0);
   //p.drawPixmap(home_btn.x(), home_btn.y(), onroad ? flag_img : home_img);
-  if (onroad) {
-    bool enabled = params.getBool("OpenpilotEnabledToggle");
-    p.drawPixmap(home_btn.x(), home_btn.y(), enabled ? op_enabled_img : op_disabled_img);
+
+  bool forced_offroad = params.getBool("ForceOffroad");
+  if (forced_offroad) {
+    p.drawPixmap(home_btn.x(), home_btn.y(), op_disabled_img);
   } else {
-    p.drawPixmap(home_btn.x(), home_btn.y(), home_img);
+    p.drawPixmap(home_btn.x(), home_btn.y(), op_enabled_img);
   }
   p.setOpacity(1.0);
 
