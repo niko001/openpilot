@@ -317,24 +317,6 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   buttons_layout->addWidget(offroad_btn);
   addItem(buttons_layout);
 
-  // Update offroad button state when the panel becomes visible
-  QObject::connect(this, &QWidget::visibleChanged, [=](bool visible) {
-    if (visible) {
-      bool force_offroad = params.getBool("ForceOffroad");
-      offroad_btn->setText(force_offroad ? tr("Unforce Offroad") : tr("Force Offroad"));
-      offroad_btn->setStyleSheet(QString(R"(
-        QPushButton {
-          height: 120px;
-          border-radius: 15px;
-          background-color: %1;
-        }
-        QPushButton:pressed {
-          background-color: %2;
-        }
-      )").arg(force_offroad ? "#393939" : "#E22C2C",
-              force_offroad ? "#4a4a4a" : "#FF2424"));
-    }
-  });
 }
 
 void DevicePanel::updateCalibDescription() {
