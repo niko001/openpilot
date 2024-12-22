@@ -59,7 +59,6 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     update();
   }
   if (home_btn.contains(event->pos())) {
-    bool forced_offroad = params.getBool("ForceOffroad");
     if (!uiState()->engaged()) {
       if (params.getBool("ForceOffroad")) {
         params.remove("ForceOffroad");
@@ -67,7 +66,7 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
         params.putBool("ForceOffroad", true);
       }
     } else {
-      ConfirmationDialog::alert(tr("Disengage to force disable nikopilot"), this);
+      ConfirmationDialog::alert(tr("Disengage to force-disable nikopilot"), this);
     }
 
     update();
