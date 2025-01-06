@@ -36,9 +36,9 @@ class WazeAlertManager:
     self.current_lat = 0
     self.current_lon = 0
     self.last_fetch_time = 0
-    self.fetch_interval = 30  # seconds
-    self.alert_radius = 50  # km
-    self.area_size = 50  # km (50x50 km area)
+    self.fetch_interval = 120  # seconds (2 minutes)
+    self.alert_radius = 10  # km
+    self.area_size = 10  # km (10x10 km area)
 
     self.active_alerts = set()  # Currently active alert UUIDs
 
@@ -104,7 +104,7 @@ class WazeAlertManager:
       print(f"Response data: {json.dumps(data, indent=2)}")
 
       # Clear old alerts from database
-      self.db.execute("DELETE FROM alerts")
+      #self.db.execute("DELETE FROM alerts")
       print("Cleared old alerts from database")
 
       # Store new alerts
@@ -146,7 +146,7 @@ class WazeAlertManager:
       SELECT uuid, type, subtype, latitude, longitude, road_name, city
       FROM alerts
       WHERE pub_millis > ?
-    """, (int(time.time()*1000) - 3600000,))  # Only get alerts from last hour
+    """, (int(time.time()*1000) - 10800000,))  # Only get alerts from last 3 hours
 
     nearby_alerts = set()
     for alert in cursor.fetchall():
