@@ -7,7 +7,7 @@ import threading
 from math import radians, sin, cos, sqrt, atan2
 import requests
 
-import cereal.messaging as messaging
+from cereal import messaging, log
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.numpy_fast import interp
@@ -160,16 +160,30 @@ class WazeAlertManager:
 
         if alert[0] not in self.active_alerts:
           print(f"New nearby alert detected: type={alert[1]}, subtype={alert[2]}, distance={distance:.2f}km")
-          # New alert detected - send alert message
-          alert_msg = messaging.new_message('wazeAlerts')
-          alert_msg.wazeAlerts = {
-            'alertType': alert[1],
-            'alertSubType': alert[2],
-            'distance': distance,
-            'roadName': alert[5],
-            'city': alert[6]
-          }
-          self.pm.send('wazeAlerts', alert_msg)
+
+          # Map Waze alert types to openpilot alert types
+          alert_type = None
+          if alert[1] == "POLICE":
+            alert_type = "wazePolice"
+          elif alert[1] == "HAZARD":
+            alert_type = "wazeHazard"
+          elif alert[1] == "ACCIDENT":
+            alert_type = "wazeAccident"
+          elif alert[1] == "ROAD_CLOSED":
+            alert_type = "wazeRoadClosed"
+
+          if alert_type:
+            # Create alert event
+            alert_event = messaging.new_message('controlsState')
+            alert_event.controlsState.alertType = alert_type
+            alert_event.controlsState.alertText1 = f"{alert[5] or 'Unknown Road'}"
+            alert_event.controlsState.alertText2 = f"{distance:.1f}km ahead"
+            alert_event.controlsState.alertSize = log.ControlsState.AlertSize.small
+            alert_event.controlsState.alertStatus = log.ControlsState.AlertStatus.normal
+            alert_event.controlsState.alertBlinkingRate = 0.
+            alert_event.controlsState.alertSound = log.CarControl.HUDControl.AudibleAlert.warningImmediate
+
+            self.pm.send('controlsState', alert_event)
 
     # Update active alerts
     self.active_alerts = nearby_alerts
