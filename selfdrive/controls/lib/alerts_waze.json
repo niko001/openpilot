@@ -1,7 +1,7 @@
 {
   "wazePolice": {
     "text": "Police Reported Ahead",
-    "severity": 0
+    "severity": 1
   },
   "wazeHazard": {
     "text": "Road Hazard Ahead",

@@ -7,7 +7,9 @@ import threading
 from math import radians, sin, cos, sqrt, atan2
 import requests
 
-from cereal import messaging, log
+from cereal import messaging, log, car
+from openpilot.selfdrive.controls.lib.events import Alert
+from openpilot.selfdrive.controls.lib.alertmanager import AlertManager
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.numpy_fast import interp
@@ -30,8 +32,9 @@ class WazeAlertManager:
     self.db = sqlite3.connect(self.db_path)
     self.setup_database()
 
-    self.pm = messaging.PubMaster(['wazeAlerts'])
+    self.pm = messaging.PubMaster(['wazeAlerts', 'controlsState'])
     self.sm = messaging.SubMaster(['gpsLocationExternal'])
+    self.alert_manager = AlertManager()
 
     self.current_lat = 0
     self.current_lon = 0
@@ -41,6 +44,7 @@ class WazeAlertManager:
     self.area_size = 10  # km (10x10 km area)
 
     self.active_alerts = set()  # Currently active alert UUIDs
+    self.frame = 0  # Frame counter for alert manager
 
   def setup_database(self):
     """Initialize the SQLite database schema."""
@@ -136,6 +140,19 @@ class WazeAlertManager:
         print(f"Response status code: {e.response.status_code}")
         print(f"Response content: {e.response.text}")
 
+  def create_alert(self, alert_type: str, road_name: str, distance: float) -> Alert:
+    """Create an Alert object for a Waze alert."""
+    return Alert(
+      alert_text_1=f"{alert_type} ahead",
+      alert_text_2=f"{road_name or 'Unknown Road'} ({distance:.1f}km)",
+      alert_status=log.ControlsState.AlertStatus.normal,
+      alert_size=log.ControlsState.AlertSize.small,
+      priority=3,  # Priority.MID
+      visual_alert=car.CarControl.HUDControl.VisualAlert.none,
+      audible_alert=car.CarControl.HUDControl.AudibleAlert.prompt,
+      duration=2.0
+    )
+
   def check_alerts(self):
     """Check for alerts near current location."""
     if not self.current_lat or not self.current_lon:
@@ -149,6 +166,8 @@ class WazeAlertManager:
     """, (int(time.time()*1000) - 10800000,))  # Only get alerts from last 3 hours
 
     nearby_alerts = set()
+    alerts_to_show = []
+
     for alert in cursor.fetchall():
       distance = haversine_distance(
         self.current_lat, self.current_lon,
@@ -161,29 +180,24 @@ class WazeAlertManager:
         if alert[0] not in self.active_alerts:
           print(f"New nearby alert detected: type={alert[1]}, subtype={alert[2]}, distance={distance:.2f}km")
 
-          # Map Waze alert types to openpilot alert types
-          alert_type = None
-          if alert[1] == "POLICE":
-            alert_type = "wazePolice"
-          elif alert[1] == "HAZARD":
-            alert_type = "wazeHazard"
-          elif alert[1] == "ACCIDENT":
-            alert_type = "wazeAccident"
-          elif alert[1] == "ROAD_CLOSED":
-            alert_type = "wazeRoadClosed"
+          # Create and send wazeAlerts message for UI
+          alert_msg = messaging.new_message('wazeAlerts')
+          alert_msg.wazeAlerts = {
+            'alertType': alert[1],
+            'alertSubType': alert[2],
+            'distance': distance,
+            'roadName': alert[5],
+            'city': alert[6]
+          }
+          self.pm.send('wazeAlerts', alert_msg)
 
-          if alert_type:
-            # Create alert event
-            alert_event = messaging.new_message('controlsState')
-            alert_event.controlsState.alertType = alert_type
-            alert_event.controlsState.alertText1 = f"{alert[5] or 'Unknown Road'}"
-            alert_event.controlsState.alertText2 = f"{distance:.1f}km ahead"
-            alert_event.controlsState.alertSize = log.ControlsState.AlertSize.small
-            alert_event.controlsState.alertStatus = log.ControlsState.AlertStatus.normal
-            alert_event.controlsState.alertBlinkingRate = 0.
-            alert_event.controlsState.alertSound = log.CarControl.HUDControl.AudibleAlert.warningImmediate
+          # Create alert for display
+          alert_obj = self.create_alert(alert[1], alert[5], distance)
+          alerts_to_show.append(alert_obj)
 
-            self.pm.send('controlsState', alert_event)
+    # Add alerts to alert manager
+    if alerts_to_show:
+      self.alert_manager.add_many(self.frame, alerts_to_show)
 
     # Update active alerts
     self.active_alerts = nearby_alerts
@@ -191,6 +205,7 @@ class WazeAlertManager:
 
   def update(self):
     """Main update loop."""
+    self.frame += 1
     self.sm.update()
 
     if self.sm.updated['gpsLocationExternal']:
@@ -207,6 +222,25 @@ class WazeAlertManager:
       print(f"\nTime to fetch alerts (last fetch was {current_time - self.last_fetch_time:.1f}s ago)")
       self.fetch_alerts()
       self.last_fetch_time = current_time
+
+    # Process alerts
+    alert = self.alert_manager.process_alerts(self.frame, set())
+    if alert:
+      cs = messaging.new_message('controlsState')
+      cs.valid = True
+      cs.controlsState = {
+        'alertText1': alert.alert_text_1,
+        'alertText2': alert.alert_text_2,
+        'alertSize': alert.alert_size,
+        'alertStatus': alert.alert_status,
+        'alertBlinkingRate': alert.alert_rate,
+        'alertType': alert.alert_type,
+        'alertSound': alert.audible_alert,
+        'enabled': True,
+        'active': True,
+        'cumLagMs': 0.0
+      }
+      self.pm.send('controlsState', cs)
 
     self.check_alerts()
 
