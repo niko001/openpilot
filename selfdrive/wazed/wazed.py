@@ -37,8 +37,8 @@ class WazeAlertManager:
     self.current_lon = 0
     self.last_fetch_time = 0
     self.fetch_interval = 30  # seconds
-    self.alert_radius = 5  # km
-    self.area_size = 5  # km (5x5 km area)
+    self.alert_radius = 15  # km
+    self.area_size = 15  # km (15x15 km area)
 
     self.active_alerts = set()  # Currently active alert UUIDs
 
