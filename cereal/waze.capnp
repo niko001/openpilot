@@ -1,7 +1,7 @@
-@0xf98f2c53a2739e6e;
-
-using Cxx = import "c++.capnp";
+using Cxx = import "./include/c++.capnp";
 $Cxx.namespace("cereal");
+
+@0xf98f2c53a2739e6e;
 
 struct WazeAlerts {
   alertType @0 :Text;
