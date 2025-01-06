@@ -8,8 +8,7 @@ from math import radians, sin, cos, sqrt, atan2
 import requests
 
 from cereal import messaging, log, car
-from openpilot.selfdrive.controls.lib.events import Alert
-from openpilot.selfdrive.controls.lib.alertmanager import AlertManager
+from openpilot.selfdrive.controls.lib.events import Alert, Events, ET, Priority, AlertSize, AlertStatus, EVENTS, EventName
 from openpilot.common.params import Params
 from openpilot.common.realtime import Ratekeeper
 from openpilot.common.numpy_fast import interp
@@ -34,7 +33,7 @@ class WazeAlertManager:
 
     self.pm = messaging.PubMaster(['wazeAlerts', 'controlsState'])
     self.sm = messaging.SubMaster(['gpsLocationExternal'])
-    self.alert_manager = AlertManager()
+    self.events = Events()
 
     self.current_lat = 0
     self.current_lon = 0
@@ -140,18 +139,17 @@ class WazeAlertManager:
         print(f"Response status code: {e.response.status_code}")
         print(f"Response content: {e.response.text}")
 
-  def create_alert(self, alert_type: str, road_name: str, distance: float) -> Alert:
-    """Create an Alert object for a Waze alert."""
-    return Alert(
-      alert_text_1=f"{alert_type} ahead",
-      alert_text_2=f"{road_name or 'Unknown Road'} ({distance:.1f}km)",
-      alert_status=log.ControlsState.AlertStatus.normal,
-      alert_size=log.ControlsState.AlertSize.small,
-      priority=3,  # Priority.MID
-      visual_alert=car.CarControl.HUDControl.VisualAlert.none,
-      audible_alert=car.CarControl.HUDControl.AudibleAlert.prompt,
-      duration=2.0
-    )
+  def get_waze_event(self, alert_type: str) -> int:
+    """Get the appropriate event name for a Waze alert type."""
+    if alert_type == "POLICE":
+      return EventName.wazePolice
+    elif alert_type == "HAZARD":
+      return EventName.wazeHazard
+    elif alert_type == "ACCIDENT":
+      return EventName.wazeAccident
+    elif alert_type == "ROAD_CLOSED":
+      return EventName.wazeRoadClosed
+    return None
 
   def check_alerts(self):
     """Check for alerts near current location."""
@@ -191,13 +189,10 @@ class WazeAlertManager:
           }
           self.pm.send('wazeAlerts', alert_msg)
 
-          # Create alert for display
-          alert_obj = self.create_alert(alert[1], alert[5], distance)
-          alerts_to_show.append(alert_obj)
-
-    # Add alerts to alert manager
-    if alerts_to_show:
-      self.alert_manager.add_many(self.frame, alerts_to_show)
+          # Add event if we have a mapping for this alert type
+          event_name = self.get_waze_event(alert[1])
+          if event_name:
+            self.events.add(event_name)
 
     # Update active alerts
     self.active_alerts = nearby_alerts
@@ -223,11 +218,14 @@ class WazeAlertManager:
       self.fetch_alerts()
       self.last_fetch_time = current_time
 
-    # Process alerts
-    alert = self.alert_manager.process_alerts(self.frame, set())
-    if alert:
+    self.check_alerts()
+
+    # Process events and create alerts
+    alerts = self.events.create_alerts(['warning'])
+    if alerts:
       cs = messaging.new_message('controlsState')
       cs.valid = True
+      alert = alerts[0]
       cs.controlsState = {
         'alertText1': alert.alert_text_1,
         'alertText2': alert.alert_text_2,
@@ -242,7 +240,8 @@ class WazeAlertManager:
       }
       self.pm.send('controlsState', cs)
 
-    self.check_alerts()
+    # Clear events for next iteration
+    self.events.clear()
 
 def main():
   print("Starting WazeAlertManager...")

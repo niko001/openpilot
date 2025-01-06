@@ -117,6 +117,12 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     paramsdPermanentError @119;
     actuatorsApiUnavailable @120;
 
+    # Waze alerts
+    wazePolice @121;
+    wazeHazard @122;
+    wazeAccident @123;
+    wazeRoadClosed @124;
+
     radarCanErrorDEPRECATED @15;
     communityFeatureDisallowedDEPRECATED @62;
     radarCommIssueDEPRECATED @67;

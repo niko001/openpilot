@@ -952,6 +952,55 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.NO_ENTRY: NoEntryAlert("Vehicle Sensors Calibrating"),
   },
 
+  # Waze alerts
+  EventName.wazePolice: {
+    ET.WARNING: Alert(
+      "Police Reported Ahead",
+      "",
+      AlertStatus.normal,
+      AlertSize.small,
+      Priority.LOW,
+      VisualAlert.none,
+      AudibleAlert.prompt,
+      3.0),
+  },
+
+  EventName.wazeHazard: {
+    ET.WARNING: Alert(
+      "Road Hazard Ahead",
+      "",
+      AlertStatus.normal,
+      AlertSize.small,
+      Priority.LOW,
+      VisualAlert.none,
+      AudibleAlert.prompt,
+      3.0),
+  },
+
+  EventName.wazeAccident: {
+    ET.WARNING: Alert(
+      "Accident Ahead",
+      "",
+      AlertStatus.normal,
+      AlertSize.small,
+      Priority.LOW,
+      VisualAlert.none,
+      AudibleAlert.prompt,
+      3.0),
+  },
+
+  EventName.wazeRoadClosed: {
+    ET.WARNING: Alert(
+      "Road Closed Ahead",
+      "",
+      AlertStatus.normal,
+      AlertSize.small,
+      Priority.LOW,
+      VisualAlert.none,
+      AudibleAlert.prompt,
+      3.0),
+  },
+
 }
 
 
