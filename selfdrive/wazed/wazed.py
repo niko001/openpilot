@@ -26,6 +26,7 @@ def haversine_distance(lat1, lon1, lat2, lon2):
 class WazeAlertManager:
   def __init__(self):
     self.db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "waze_alerts.db")
+    print(f"Initializing WazeAlertManager with database at: {self.db_path}")
     self.db = sqlite3.connect(self.db_path)
     self.setup_database()
 
@@ -43,6 +44,7 @@ class WazeAlertManager:
 
   def setup_database(self):
     """Initialize the SQLite database schema."""
+    print("Setting up database schema...")
     self.db.execute("""
       CREATE TABLE IF NOT EXISTS alerts (
         uuid TEXT PRIMARY KEY,
@@ -56,11 +58,15 @@ class WazeAlertManager:
       )
     """)
     self.db.commit()
+    print("Database schema setup complete")
 
   def fetch_alerts(self):
     """Fetch alerts from Waze API for current location."""
     if not self.current_lat or not self.current_lon:
+      print("No GPS coordinates available yet, skipping alert fetch")
       return
+
+    print(f"\nFetching alerts for coordinates: lat={self.current_lat}, lon={self.current_lon}")
 
     # Calculate bounding box
     km_per_degree = 111.32  # approximate degrees per km at equator
@@ -74,8 +80,10 @@ class WazeAlertManager:
       'right': self.current_lon + lon_delta
     }
 
+    print(f"Bounding box: {json.dumps(bounds, indent=2)}")
+
     try:
-      url = f"https://www.waze.com/live-map/api/georss"
+      url = "https://www.waze.com/live-map/api/georss"
       params = {
         'top': bounds['top'],
         'bottom': bounds['bottom'],
@@ -85,14 +93,25 @@ class WazeAlertManager:
         'types': 'alerts'
       }
 
+      # Log the full URL being requested
+      full_url = requests.Request('GET', url, params=params).prepare().url
+      print(f"Requesting Waze alerts from: {full_url}")
+
       response = requests.get(url, params=params, timeout=10)
+      print(f"Response status code: {response.status_code}")
+
       data = response.json()
+      print(f"Response data: {json.dumps(data, indent=2)}")
 
       # Clear old alerts from database
       self.db.execute("DELETE FROM alerts")
+      print("Cleared old alerts from database")
 
       # Store new alerts
-      for alert in data.get('alerts', []):
+      alerts = data.get('alerts', [])
+      print(f"Found {len(alerts)} alerts")
+
+      for alert in alerts:
         self.db.execute("""
           INSERT INTO alerts (uuid, type, subtype, latitude, longitude, pub_millis, road_name, city)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -106,11 +125,16 @@ class WazeAlertManager:
           alert.get('street', ''),
           alert.get('city', '')
         ))
+        print(f"Stored alert: type={alert['type']}, subtype={alert.get('subtype', '')}, location=({alert['location']['y']}, {alert['location']['x']})")
 
       self.db.commit()
+      print("Successfully committed alerts to database")
 
     except Exception as e:
-      print(f"Error fetching Waze alerts: {e}")
+      print(f"Error fetching Waze alerts: {e.__class__.__name__}: {str(e)}")
+      if hasattr(e, 'response'):
+        print(f"Response status code: {e.response.status_code}")
+        print(f"Response content: {e.response.text}")
 
   def check_alerts(self):
     """Check for alerts near current location."""
@@ -135,6 +159,7 @@ class WazeAlertManager:
         nearby_alerts.add(alert[0])  # Add UUID to nearby alerts
 
         if alert[0] not in self.active_alerts:
+          print(f"New nearby alert detected: type={alert[1]}, subtype={alert[2]}, distance={distance:.2f}km")
           # New alert detected - send alert message
           alert_msg = messaging.new_message('wazeAlerts')
           alert_msg.wazeAlerts = {
@@ -155,17 +180,24 @@ class WazeAlertManager:
     self.sm.update()
 
     if self.sm.updated['gpsLocationExternal']:
+      prev_lat = self.current_lat
+      prev_lon = self.current_lon
       self.current_lat = self.sm['gpsLocationExternal'].latitude
       self.current_lon = self.sm['gpsLocationExternal'].longitude
 
+      if prev_lat != self.current_lat or prev_lon != self.current_lon:
+        print(f"Updated GPS location: lat={self.current_lat}, lon={self.current_lon}")
+
     current_time = time.time()
     if current_time - self.last_fetch_time >= self.fetch_interval:
+      print(f"\nTime to fetch alerts (last fetch was {current_time - self.last_fetch_time:.1f}s ago)")
       self.fetch_alerts()
       self.last_fetch_time = current_time
 
     self.check_alerts()
 
 def main():
+  print("Starting WazeAlertManager...")
   waze = WazeAlertManager()
   rk = Ratekeeper(2.0)  # 2Hz update rate
 
