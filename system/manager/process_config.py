@@ -86,6 +86,7 @@ procs = [
   NativeProcess("bridge", "cereal/messaging", ["./bridge"], notcar),
   PythonProcess("webrtcd", "system.webrtc.webrtcd", notcar),
   PythonProcess("webjoystick", "tools.bodyteleop.web", notcar),
+  PythonProcess("wazed", "selfdrive.wazed.wazed", only_onroad),  # Waze alert integration
 ]
 
 managed_processes = {p.name: p for p in procs}

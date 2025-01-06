@@ -4,6 +4,7 @@ $Cxx.namespace("cereal");
 using Car = import "car.capnp";
 using Legacy = import "legacy.capnp";
 using Custom = import "custom.capnp";
+using Waze = import "waze.capnp";
 
 @0xf3b1f17e25a4285b;
 
@@ -2324,6 +2325,7 @@ struct Event {
     customReserved7 @114 :Custom.CustomReserved7;
     customReserved8 @115 :Custom.CustomReserved8;
     customReserved9 @116 :Custom.CustomReserved9;
+    wazeAlerts @128 :Waze.WazeAlerts;
 
     # *********** legacy + deprecated ***********
     model @9 :Legacy.ModelData; # TODO: rename modelV2 and mark this as deprecated

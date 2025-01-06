@@ -1,0 +1,18 @@
+{
+  "wazePolice": {
+    "text": "Police Reported Ahead",
+    "severity": 0
+  },
+  "wazeHazard": {
+    "text": "Road Hazard Ahead",
+    "severity": 1
+  },
+  "wazeAccident": {
+    "text": "Accident Ahead",
+    "severity": 1
+  },
+  "wazeRoadClosed": {
+    "text": "Road Closed Ahead",
+    "severity": 2
+  }
+}
