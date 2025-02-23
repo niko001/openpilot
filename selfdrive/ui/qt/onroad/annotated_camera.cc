@@ -355,6 +355,13 @@ void AnnotatedCameraWidget::paintGL() {
   const double start_draw_t = millis_since_boot();
   const cereal::ModelDataV2::Reader &model = sm["modelV2"].getModelV2();
 
+  // Check if camera should be hidden
+  if (Params().getBool("HideCamera")) {
+    QPainter painter(this);
+    painter.fillRect(rect(), Qt::black);
+    return;
+  }
+
   // draw camera frame
   {
     std::lock_guard lk(frame_lock);
