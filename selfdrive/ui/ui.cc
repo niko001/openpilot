@@ -208,13 +208,14 @@ static void update_state(UIState *s) {
   } else if (!sm.allAliveAndValid({"wideRoadCameraState"})) {
     scene.light_sensor = -1;
   }
-  scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition && !Params().getBool("ForceOffroad");
+  scene.started = sm["deviceState"].getDeviceState().getStarted() && scene.ignition;
 
-  scene.world_objects_visible = scene.world_objects_visible ||
+  bool camera_hidden = Params().getBool("HideCamera");
+  scene.world_objects_visible = !camera_hidden && (scene.world_objects_visible ||
                                 (scene.started &&
                                  sm.rcv_frame("liveCalibration") > scene.started_frame &&
                                  sm.rcv_frame("modelV2") > scene.started_frame &&
-                                 sm.rcv_frame("uiPlan") > scene.started_frame);
+                                 sm.rcv_frame("uiPlan") > scene.started_frame));
 }
 
 void ui_update_params(UIState *s) {

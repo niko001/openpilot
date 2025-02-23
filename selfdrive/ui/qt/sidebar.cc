@@ -59,16 +59,11 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     update();
   }
   if (home_btn.contains(event->pos())) {
-    if (!uiState()->engaged()) {
-      if (params.getBool("ForceOffroad")) {
-        params.remove("ForceOffroad");
-      } else {
-        params.putBool("ForceOffroad", true);
-      }
+    if (params.getBool("HideCamera")) {
+      params.remove("HideCamera");
     } else {
-      ConfirmationDialog::alert(tr("Disengage to force-disable nikopilot"), this);
+      params.putBool("HideCamera", true);
     }
-
     update();
   } else if (settings_btn.contains(event->pos())) {
     emit openSettings();
@@ -133,8 +128,8 @@ void Sidebar::paintEvent(QPaintEvent *event) {
   p.setOpacity(onroad && flag_pressed ? 0.65 : 1.0);
   //p.drawPixmap(home_btn.x(), home_btn.y(), onroad ? flag_img : home_img);
 
-  bool forced_offroad = params.getBool("ForceOffroad");
-  if (forced_offroad) {
+  bool camera_hidden = params.getBool("HideCamera");
+  if (camera_hidden) {
     p.drawPixmap(home_btn.x(), home_btn.y(), op_disabled_img);
   } else {
     p.drawPixmap(home_btn.x(), home_btn.y(), op_enabled_img);
