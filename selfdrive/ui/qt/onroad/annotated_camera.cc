@@ -356,11 +356,11 @@ void AnnotatedCameraWidget::paintGL() {
   const cereal::ModelDataV2::Reader &model = sm["modelV2"].getModelV2();
 
   // Check if camera should be hidden
-  //if (Params().getBool("HideCamera")) {
-  //  QPainter painter(this);
-  //  painter.fillRect(rect(), Qt::black);
-  //  return;
-  //}
+  if (Params().getBool("HideCamera")) {
+    QPainter painter(this);
+    painter.fillRect(rect(), Qt::black);
+    return;
+  }
 
   // draw camera frame
   {

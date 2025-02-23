@@ -249,7 +249,7 @@ def main():
   rk = Ratekeeper(2.0)  # 2Hz update rate
 
   while True:
-    #waze.update() ## TODO- COMMENTED OUT 23.02.2025, REMOVE COMMENT TO ENABLE AGAIN
+    waze.update()
     rk.keep_time()
 
 if __name__ == "__main__":
