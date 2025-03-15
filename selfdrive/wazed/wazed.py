@@ -87,6 +87,7 @@ def fetch_waze_alerts(lat, lon):
 
   try:
     logger.info(f"Wazed: Making API request to {url}")
+    last_api_call_time = current_time
     response = requests.get(url, timeout=10)
     logger.info(f"Wazed: Response status: {response.status_code}")
 
@@ -98,7 +99,6 @@ def fetch_waze_alerts(lat, lon):
         data = response.json()
         if "alerts" in data:
           alerts_cache = data["alerts"]
-          last_api_call_time = current_time
           cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
           logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API")
         else:
@@ -204,8 +204,13 @@ def wazed_thread():
         logger.info(f"Current position: lat={current_lat:.6f}, lon={current_lon:.6f}, bearing={current_bearing:.1f}°")
         last_gps_log_time = current_time
 
-      # Fetch Waze alerts
-      waze_alerts = fetch_waze_alerts(current_lat, current_lon)
+      # Only attempt to fetch Waze alerts every WAZE_API_UPDATE_INTERVAL
+      elapsed_since_last_call = current_time - last_api_call_time
+      if elapsed_since_last_call >= WAZE_API_UPDATE_INTERVAL and not api_is_busy:
+        # Fetch Waze alerts
+        waze_alerts = fetch_waze_alerts(current_lat, current_lon)
+      else:
+        waze_alerts = alerts_cache
       if waze_alerts:
         # Send the alerts to our subscribers
         waze_alert_msg = messaging.new_message('wazeAlerts')
