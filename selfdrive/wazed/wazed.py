@@ -69,8 +69,11 @@ def fetch_waze_alerts(lat, lon):
   current_time = time.time()
 
   # Only update once every WAZE_API_UPDATE_INTERVAL
-  if current_time - last_api_call_time < WAZE_API_UPDATE_INTERVAL and alerts_cache:
-    return alerts_cache
+  if current_time - last_api_call_time < WAZE_API_UPDATE_INTERVAL:
+    if alerts_cache:
+      return alerts_cache
+    else:
+      return
 
   # Calculate bounding box
   half_width = BOUNDING_BOX_WIDTH / 2
@@ -226,19 +229,12 @@ def check_alerts_thread():
   """Thread to check if we need to display alerts to the user."""
   global last_alerted_uuids
 
-  sm = messaging.SubMaster(['wazeAlerts', 'selfdriveState'])
+  sm = messaging.SubMaster(['wazeAlerts'])
 
   while True:
     sm.update()
 
-    if sm.updated['wazeAlerts'] and sm.updated['selfdriveState']:
-      # Only show alerts when the car is started
-      if not sm['selfdriveState'].getSelfdriveState().getStarted():
-        time.sleep(1)
-        continue
-
-      alerts_to_show = []
-
+    if sm.updated['wazeAlerts']:
       # Get the car's position
       car_lat = sm['wazeAlerts'].getWazeAlerts().getPosition().getLatitude()
       car_lon = sm['wazeAlerts'].getWazeAlerts().getPosition().getLongitude()
