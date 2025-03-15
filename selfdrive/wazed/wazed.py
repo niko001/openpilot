@@ -89,14 +89,14 @@ def fetch_waze_alerts(lat, lon):
       if "alerts" in data:
         alerts_cache = data["alerts"]
         last_api_call_time = current_time
-        cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
+        #cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
         logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API")
         return alerts_cache
       else:
-        cloudlog.warning("Wazed: No alerts field in Waze API response")
+        #cloudlog.warning("Wazed: No alerts field in Waze API response")
         logger.warning("No alerts field in Waze API response")
   except Exception as e:
-    cloudlog.error(f"Wazed: Error fetching Waze alerts: {e}")
+    #cloudlog.error(f"Wazed: Error fetching Waze alerts: {e}")
     logger.error(f"Error fetching Waze alerts: {e}")
 
   # Return cached data if request fails
@@ -182,7 +182,7 @@ def wazed_thread():
       # Log GPS position periodically
       current_time = time.time()
       if current_time - last_gps_log_time > GPS_LOG_INTERVAL:
-        cloudlog.info(f"Wazed: Current position: lat={car_lat:.6f}, lon={car_lon:.6f}, bearing={car_bearing:.1f}°")
+        #cloudlog.info(f"Wazed: Current position: lat={car_lat:.6f}, lon={car_lon:.6f}, bearing={car_bearing:.1f}°")
         logger.info(f"Current position: lat={car_lat:.6f}, lon={car_lon:.6f}, bearing={car_bearing:.1f}°")
         last_gps_log_time = current_time
 
@@ -261,7 +261,7 @@ def check_alerts_thread():
           # Construct and send controlsState message with our alert
           # This part depends on how openpilot handles custom alerts...
           alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
-          cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
+          #cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
           logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
 
           # For demo, also print to console
@@ -276,7 +276,7 @@ def check_alerts_thread():
 
       # Log alert statistics
       if len(alerts_cache) > 0:
-        cloudlog.debug(f"Wazed: Monitoring {len(alerts_cache)} alerts, {len(last_alerted_uuids)} already alerted")
+        logger.info(f"Wazed: Monitoring {len(alerts_cache)} alerts, {len(last_alerted_uuids)} already alerted")
 
     time.sleep(CHECK_ALERTS_INTERVAL)
 
