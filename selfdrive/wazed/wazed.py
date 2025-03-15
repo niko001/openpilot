@@ -27,8 +27,8 @@ CHECK_ALERTS_INTERVAL = 1.0  # Check for alerts every 1 second
 MOCK_ALERT = {
   "type": "POLICE",
   "location": {
-    "x": -117.187380,  # longitude
-    "y": 32.744916     # latitude
+    "x": -117.191503,  # longitude
+    "y": 32.746869     # latitude
   },
   "street": "I-5 South",
   "reportDescription": "Mock police alert for testing purposes",
