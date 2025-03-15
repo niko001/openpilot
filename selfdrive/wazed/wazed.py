@@ -317,7 +317,7 @@ def check_alerts_thread():
             pm = messaging.PubMaster(['selfdriveState'])
             pm.send('selfdriveState', selfdriveState)
 
-            cloudlog.info(f"Wazed: Published alert: {alert.alert_text_1}")
+            cloudlog.info(f"Wazed: Published alert: {op_alert.alert_text_1}")
 
           alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
           cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
