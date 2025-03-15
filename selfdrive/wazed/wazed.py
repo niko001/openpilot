@@ -309,7 +309,6 @@ def check_alerts_thread():
           ss_alert.selfdriveState.alertSize = op_alert.alert_size
           ss_alert.selfdriveState.alertSound = op_alert.audible_alert
           ss_alert.selfdriveState.alertType = f"wazeAlert/{alert.get('type', 'UNKNOWN')}"
-          ss_alert.selfdriveState.alertBlinkingRate = 0.0
 
           # Publish the alert via selfdriveState
           pm = messaging.PubMaster(['selfdriveState'])
