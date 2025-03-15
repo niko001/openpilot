@@ -158,7 +158,12 @@ def wazed_thread():
   global alerts_cache
 
   pm = messaging.PubMaster(['wazeAlerts'])
-  sm = messaging.SubMaster(['livePose', 'gpsLocation'])
+  sm = messaging.SubMaster(['gpsLocationExternal'])
+
+  # For tracking position changes
+  current_lat = 0.0
+  current_lon = 0.0
+  current_bearing = 0.0
 
   # For periodic GPS logging
   last_gps_log_time = 0
@@ -167,35 +172,36 @@ def wazed_thread():
   while True:
     sm.update()
 
-    if sm.updated['gpsLocation'] and sm.updated['livePose']:
-      gps = sm['gpsLocation'].getGpsLocation()
-      pose = sm['livePose'].getLivePose()
+    if sm.updated['gpsLocationExternal']:
+      gps = sm['gpsLocationExternal']
 
       # Check if we have valid GPS
-      if not sm['gpsLocation'].valid:
+      if not gps.valid:
         time.sleep(1)
         continue
 
       # Get the car's position and bearing
-      car_lat = gps.latitude
-      car_lon = gps.longitude
-      car_bearing = math.degrees(pose.orientationNED.x) % 360  # Convert to degrees and normalize to 0-360
+      prev_lat = current_lat
+      prev_lon = current_lon
+      current_lat = gps.latitude
+      current_lon = gps.longitude
+      current_bearing = gps.bearingDeg if gps.bearingDeg > 0.0 else 0.0  # Use GPS bearing when available
 
       # Log GPS position periodically
       current_time = time.time()
       if current_time - last_gps_log_time > GPS_LOG_INTERVAL:
-        #cloudlog.info(f"Wazed: Current position: lat={car_lat:.6f}, lon={car_lon:.6f}, bearing={car_bearing:.1f}°")
-        logger.info(f"Current position: lat={car_lat:.6f}, lon={car_lon:.6f}, bearing={car_bearing:.1f}°")
+        cloudlog.info(f"Wazed: Current position: lat={current_lat:.6f}, lon={current_lon:.6f}, bearing={current_bearing:.1f}°")
+        logger.info(f"Current position: lat={current_lat:.6f}, lon={current_lon:.6f}, bearing={current_bearing:.1f}°")
         last_gps_log_time = current_time
 
       # Fetch Waze alerts
-      waze_alerts = fetch_waze_alerts(car_lat, car_lon)
+      waze_alerts = fetch_waze_alerts(current_lat, current_lon)
 
       # Send the alerts to our subscribers
       waze_alert_msg = messaging.new_message('wazeAlerts')
-      waze_alert_msg.wazeAlerts.position.latitude = car_lat
-      waze_alert_msg.wazeAlerts.position.longitude = car_lon
-      waze_alert_msg.wazeAlerts.bearing = car_bearing
+      waze_alert_msg.wazeAlerts.position.latitude = current_lat
+      waze_alert_msg.wazeAlerts.position.longitude = current_lon
+      waze_alert_msg.wazeAlerts.bearing = current_bearing
 
       alerts_to_check = []
       for alert in waze_alerts:
@@ -263,7 +269,7 @@ def check_alerts_thread():
           # Construct and send controlsState message with our alert
           # This part depends on how openpilot handles custom alerts...
           alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
-          #cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
+          cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
           logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
 
           # For demo, also print to console
