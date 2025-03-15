@@ -27,6 +27,7 @@ CHECK_ALERTS_INTERVAL = 1.0  # Check for alerts every 1 second
 alerts_cache = []
 last_api_call_time = 0
 last_alerted_uuids = set()  # To prevent showing the same alert multiple times in succession
+api_is_busy = False  # Flag to prevent concurrent API calls
 
 def haversine_distance(lat1, lon1, lat2, lon2):
   """Calculate the great circle distance between two points on the earth."""
@@ -64,13 +65,15 @@ def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshol
 
 def fetch_waze_alerts(lat, lon):
   """Fetch alerts from the Waze API using the specified coordinates as the center of the bounding box."""
-  global last_api_call_time, alerts_cache
+  global last_api_call_time, alerts_cache, api_is_busy
 
   current_time = time.time()
 
-  # Only update once every WAZE_API_UPDATE_INTERVAL
-  if current_time - last_api_call_time < WAZE_API_UPDATE_INTERVAL:
+  # Only update once every WAZE_API_UPDATE_INTERVAL and ensure we're not already making an API call
+  if current_time - last_api_call_time < WAZE_API_UPDATE_INTERVAL or api_is_busy:
     return alerts_cache  # Return cache even if empty (will be an empty list, not None)
+
+  api_is_busy = True  # Set flag to prevent concurrent API calls
 
   # Calculate bounding box
   half_width = BOUNDING_BOX_WIDTH / 2
@@ -83,24 +86,37 @@ def fetch_waze_alerts(lat, lon):
   url = f"https://www.waze.com/live-map/api/georss?top={top}&bottom={bottom}&left={left}&right={right}&env=row&types=alerts"
 
   try:
+    logger.info(f"Wazed: Making API request to {url}")
     response = requests.get(url, timeout=10)
+    logger.info(f"Wazed: Response status: {response.status_code}")
+
     if response.status_code == 200:
-      data = response.json()
-      logger.info(f"Response: {response}")
-      if "alerts" in data:
-        alerts_cache = data["alerts"]
-        last_api_call_time = current_time
-        cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
-        logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API")
-        return alerts_cache
-      else:
-        cloudlog.warning("Wazed: No alerts field in Waze API response")
-        logger.warning("No alerts field in Waze API response")
+      response_text = response.text
+      logger.info(f"Wazed: Response content: {response_text[:500]}..." if len(response_text) > 500 else response_text)
+
+      try:
+        data = response.json()
+        if "alerts" in data:
+          alerts_cache = data["alerts"]
+          last_api_call_time = current_time
+          cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
+          logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API")
+        else:
+          cloudlog.warning(f"Wazed: No alerts field in Waze API response. Response keys: {data.keys()}")
+          logger.warning(f"No alerts field in Waze API response. Response keys: {data.keys()}")
+      except json.JSONDecodeError as je:
+        cloudlog.error(f"Wazed: JSON parsing error: {je}")
+        logger.error(f"JSON parsing error: {je}")
+    else:
+      cloudlog.warning(f"Wazed: Non-200 response from API: {response.status_code}")
+      logger.warning(f"Non-200 response from API: {response.status_code}")
   except Exception as e:
     cloudlog.error(f"Wazed: Error fetching Waze alerts: {e}")
     logger.error(f"Error fetching Waze alerts: {e}")
+  finally:
+    api_is_busy = False  # Clear flag regardless of success/failure
 
-  # Return cached data if request fails
+  # Return cached data
   return alerts_cache
 
 def get_alert_text(alert):
@@ -190,36 +206,35 @@ def wazed_thread():
 
       # Fetch Waze alerts
       waze_alerts = fetch_waze_alerts(current_lat, current_lon)
+      if waze_alerts:
+        # Send the alerts to our subscribers
+        waze_alert_msg = messaging.new_message('wazeAlerts')
+        waze_alert_msg.wazeAlerts.position.latitude = current_lat
+        waze_alert_msg.wazeAlerts.position.longitude = current_lon
+        waze_alert_msg.wazeAlerts.bearing = current_bearing
 
-      # Send the alerts to our subscribers
-      waze_alert_msg = messaging.new_message('wazeAlerts')
-      waze_alert_msg.wazeAlerts.position.latitude = current_lat
-      waze_alert_msg.wazeAlerts.position.longitude = current_lon
-      waze_alert_msg.wazeAlerts.bearing = current_bearing
+        alerts_to_check = []
+        for alert in waze_alerts:
+          if 'location' in alert and 'x' in alert['location'] and 'y' in alert['location']:
+            alert_lat = alert['location']['y']
+            alert_lon = alert['location']['x']
+            is_ahead, distance = is_approaching(current_lat, current_lon, current_bearing, alert_lat, alert_lon)
 
-      alerts_to_check = []
-      for alert in waze_alerts:
-        if 'location' in alert and 'x' in alert['location'] and 'y' in alert['location']:
-          alert_lat = alert['location']['y']
-          alert_lon = alert['location']['x']
-          is_ahead, distance = is_approaching(current_lat, current_lon, current_bearing, alert_lat, alert_lon)
+            if is_ahead:
+              alert_data = {
+                'uuid': alert.get('uuid', ''),
+                'type': alert.get('type', 'UNKNOWN'),
+                'latitude': alert_lat,
+                'longitude': alert_lon,
+                'distance': distance,
+                'street': alert.get('street', ''),
+                'description': alert.get('reportDescription', ''),
+                'subtype': alert.get('subtype', '')
+              }
+              alerts_to_check.append(alert_data)
 
-          if is_ahead:
-            alert_data = {
-              'uuid': alert.get('uuid', ''),
-              'type': alert.get('type', 'UNKNOWN'),
-              'latitude': alert_lat,
-              'longitude': alert_lon,
-              'distance': distance,
-              'street': alert.get('street', ''),
-              'description': alert.get('reportDescription', ''),
-              'subtype': alert.get('subtype', '')
-            }
-            alerts_to_check.append(alert_data)
-
-      waze_alert_msg.wazeAlerts.alertsCount = len(alerts_to_check)
-
-      pm.send('wazeAlerts', waze_alert_msg)
+        waze_alert_msg.wazeAlerts.alertsCount = len(alerts_to_check)
+        pm.send('wazeAlerts', waze_alert_msg)
 
     time.sleep(CHECK_ALERTS_INTERVAL)
 
@@ -276,6 +291,8 @@ def check_alerts_thread():
     time.sleep(CHECK_ALERTS_INTERVAL)
 
 def main():
+  logger.info("Wazed: Starting Waze Alerts extension")
+
   # Start the background threads
   threads = [
     threading.Thread(target=wazed_thread, daemon=True),
