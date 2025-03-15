@@ -295,22 +295,17 @@ def check_alerts_thread():
         if is_ahead and alert_uuid not in last_alerted_uuids:
           op_alert = create_waze_alert(alert)
 
-          # Create a controlsState message with our custom alert
-          controls_state = messaging.new_message('controlsState')
-          controls_state.valid = True
+          # Create and send onroadEvents message with the wazeAlert event
+          events_msg = messaging.new_message('onroadEvents', 1)
+          events_msg.valid = True
 
-          # Set up the alert fields
-          controls_state.controlsState.alertText1 = op_alert.alert_text_1
-          controls_state.controlsState.alertText2 = op_alert.alert_text_2
-          controls_state.controlsState.alertSize = op_alert.alert_size
-          controls_state.controlsState.alertStatus = op_alert.alert_status
-          controls_state.controlsState.alertBlinkingRate = 10.0  # Medium blink rate
-          controls_state.controlsState.alertType = f"wazeAlert/{alert.get('type', 'UNKNOWN')}"
-          controls_state.controlsState.alertSound = op_alert.audible_alert
+          event = events_msg.onroadEvents[0]
+          event.name = EventName.wazeAlert
+          event.warning = True
 
-          # Publish the alert via controlsState
-          pm = messaging.PubMaster(['controlsState'])
-          pm.send('controlsState', controls_state)
+          # Publish the event
+          pm = messaging.PubMaster(['onroadEvents'])
+          pm.send('onroadEvents', events_msg)
 
           alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
           cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
