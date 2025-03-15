@@ -5,6 +5,7 @@
 #include <QFrame>
 #include <QMap>
 
+#include "common/params.h"
 #include "selfdrive/ui/ui.h"
 #include "selfdrive/ui/qt/network/networking.h"
 
