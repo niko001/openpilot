@@ -175,14 +175,7 @@ def wazed_thread():
     if sm.updated['gpsLocationExternal']:
       gps = sm['gpsLocationExternal']
 
-      # Check if we have valid GPS
-      if not gps.valid:
-        time.sleep(1)
-        continue
-
       # Get the car's position and bearing
-      prev_lat = current_lat
-      prev_lon = current_lon
       current_lat = gps.latitude
       current_lon = gps.longitude
       current_bearing = gps.bearingDeg if gps.bearingDeg > 0.0 else 0.0  # Use GPS bearing when available
@@ -208,7 +201,7 @@ def wazed_thread():
         if 'location' in alert and 'x' in alert['location'] and 'y' in alert['location']:
           alert_lat = alert['location']['y']
           alert_lon = alert['location']['x']
-          is_ahead, distance = is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon)
+          is_ahead, distance = is_approaching(current_lat, current_lon, current_bearing, alert_lat, alert_lon)
 
           if is_ahead:
             alert_data = {
