@@ -295,17 +295,29 @@ def check_alerts_thread():
         if is_ahead and alert_uuid not in last_alerted_uuids:
           op_alert = create_waze_alert(alert)
 
-          # Create and send onroadEvents message with the wazeAlert event
-          events_msg = messaging.new_message('onroadEvents', 1)
-          events_msg.valid = True
+          # Get the selfdriveState
+          ss = messaging.SubMaster(['selfdriveState'])
+          ss.update()
 
-          event = events_msg.onroadEvents[0]
-          event.name = EventName.wazeAlert
-          event.warning = True
+          if ss.valid['selfdriveState']:
+            # Create a selfdriveState message with our custom alert
+            selfdriveState = messaging.new_message('selfdriveState')
+            selfdriveState.valid = True
+            selfdriveState.selfdriveState = ss['selfdriveState']
 
-          # Publish the event
-          pm = messaging.PubMaster(['onroadEvents'])
-          pm.send('onroadEvents', events_msg)
+            # Set the alert fields
+            selfdriveState.selfdriveState.alertText1 = op_alert.alert_text_1
+            selfdriveState.selfdriveState.alertText2 = op_alert.alert_text_2
+            selfdriveState.selfdriveState.alertStatus = op_alert.alert_status
+            selfdriveState.selfdriveState.alertSize = op_alert.alert_size
+            selfdriveState.selfdriveState.alertSound = op_alert.audible_alert
+            selfdriveState.selfdriveState.alertType = f"wazeAlert/{alert.get('type', 'UNKNOWN')}"
+
+            # Publish the alert via selfdriveState
+            pm = messaging.PubMaster(['selfdriveState'])
+            pm.send('selfdriveState', selfdriveState)
+
+            cloudlog.info(f"Wazed: Published alert: {alert.alert_text_1}")
 
           alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
           cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
