@@ -67,14 +67,48 @@ void ui_update_params(UIState *s) {
   s->scene.is_metric = params.getBool("IsMetric");
 }
 
+#define ANIMATION_DURATION_MS 2000 // 2 seconds for full animation
+
 void UIState::updateStatus() {
   if (scene.started && sm->updated("selfdriveState")) {
     auto ss = (*sm)["selfdriveState"].getSelfdriveState();
     auto state = ss.getState();
+    UIStatus new_status;
     if (state == cereal::SelfdriveState::OpenpilotState::PRE_ENABLED || state == cereal::SelfdriveState::OpenpilotState::OVERRIDING) {
-      status = STATUS_OVERRIDE;
+      new_status = STATUS_OVERRIDE;
     } else {
-      status = ss.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
+      new_status = ss.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
+    }
+
+    // Check if we should show the animation
+    uint64_t current_time = nanos_since_boot();
+
+    // Start animation when transitioning from disengaged to engaged
+    if (status == STATUS_DISENGAGED && (new_status == STATUS_ENGAGED || new_status == STATUS_OVERRIDE)) {
+      scene.engagement_animation_active = true;
+      scene.engagement_animation_start = current_time;
+      scene.engagement_animation_progress = 0.0;
+    }
+
+    // Reset animation state when transitioning away from engaged
+    if ((status == STATUS_ENGAGED || status == STATUS_OVERRIDE) && new_status == STATUS_DISENGAGED) {
+      scene.engagement_animation_active = false;
+      scene.engagement_animation_progress = 0.0;
+    }
+
+    status = new_status;
+  }
+
+  // Update animation progress
+  if (scene.engagement_animation_active) {
+    uint64_t current_time = nanos_since_boot();
+    float progress = (float)(current_time - scene.engagement_animation_start) / (ANIMATION_DURATION_MS * 1e6);
+
+    if (progress >= 1.0) {
+      scene.engagement_animation_active = false;
+      scene.engagement_animation_progress = 0.0;
+    } else {
+      scene.engagement_animation_progress = progress;
     }
   }
 
@@ -83,6 +117,9 @@ void UIState::updateStatus() {
     if (scene.started) {
       status = STATUS_DISENGAGED;
       scene.started_frame = sm->frame;
+      // Reset animation state when starting
+      scene.engagement_animation_active = false;
+      scene.engagement_animation_progress = 0.0;
     }
     started_prev = scene.started;
     emit offroadTransition(!scene.started);

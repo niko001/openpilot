@@ -60,6 +60,11 @@ typedef struct UIScene {
   float light_sensor = -1;
   bool started, ignition, is_metric;
   uint64_t started_frame;
+
+  // Car animation
+  bool engagement_animation_active = false;
+  uint64_t engagement_animation_start = 0;
+  float engagement_animation_progress = 0.0;
 } UIScene;
 
 class UIState : public QObject {

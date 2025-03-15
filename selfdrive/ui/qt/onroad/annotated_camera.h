@@ -7,6 +7,7 @@
 #include "selfdrive/ui/qt/onroad/driver_monitoring.h"
 #include "selfdrive/ui/qt/onroad/model.h"
 #include "selfdrive/ui/qt/widgets/cameraview.h"
+#include <QPixmap>
 
 class AnnotatedCameraWidget : public CameraWidget {
   Q_OBJECT
@@ -22,6 +23,7 @@ private:
   HudRenderer hud;
   ModelRenderer model;
   std::unique_ptr<PubMaster> pm;
+  QPixmap car_img;  // Added for car animation
 
   int skip_frame_count = 0;
   bool wide_cam_requested = false;
