@@ -53,6 +53,7 @@ void Sidebar::mousePressEvent(QMouseEvent *event) {
 }
 
 void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
+  Params params;
   if (flag_pressed || settings_pressed) {
     flag_pressed = settings_pressed = false;
     update();
