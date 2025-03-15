@@ -295,29 +295,27 @@ def check_alerts_thread():
         if is_ahead and alert_uuid not in last_alerted_uuids:
           op_alert = create_waze_alert(alert)
 
-          # Get the selfdriveState
-          ss = messaging.SubMaster(['selfdriveState'])
-          ss.update()
+          # Create a selfdriveState message to display our custom alert
+          ss_alert = messaging.new_message('selfdriveState')
 
-          if ss.valid['selfdriveState']:
-            # Create a selfdriveState message with our custom alert
-            selfdriveState = messaging.new_message('selfdriveState')
-            selfdriveState.valid = True
-            selfdriveState.selfdriveState = ss['selfdriveState']
+          # Initialize selfdriveState fields
+          ss_alert.valid = True
+          ss_alert.selfdriveState.enabled = True
 
-            # Set the alert fields
-            selfdriveState.selfdriveState.alertText1 = op_alert.alert_text_1
-            selfdriveState.selfdriveState.alertText2 = op_alert.alert_text_2
-            selfdriveState.selfdriveState.alertStatus = op_alert.alert_status
-            selfdriveState.selfdriveState.alertSize = op_alert.alert_size
-            selfdriveState.selfdriveState.alertSound = op_alert.audible_alert
-            selfdriveState.selfdriveState.alertType = f"wazeAlert/{alert.get('type', 'UNKNOWN')}"
+          # Set the alert fields directly
+          ss_alert.selfdriveState.alertText1 = op_alert.alert_text_1
+          ss_alert.selfdriveState.alertText2 = op_alert.alert_text_2
+          ss_alert.selfdriveState.alertStatus = op_alert.alert_status
+          ss_alert.selfdriveState.alertSize = op_alert.alert_size
+          ss_alert.selfdriveState.alertSound = op_alert.audible_alert
+          ss_alert.selfdriveState.alertType = f"wazeAlert/{alert.get('type', 'UNKNOWN')}"
+          ss_alert.selfdriveState.alertBlinkingRate = 0.0
 
-            # Publish the alert via selfdriveState
-            pm = messaging.PubMaster(['selfdriveState'])
-            pm.send('selfdriveState', selfdriveState)
+          # Publish the alert via selfdriveState
+          pm = messaging.PubMaster(['selfdriveState'])
+          pm.send('selfdriveState', ss_alert)
 
-            cloudlog.info(f"Wazed: Published alert: {op_alert.alert_text_1}")
+          cloudlog.info(f"Wazed: Published custom alert: {op_alert.alert_text_1}")
 
           alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
           cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
