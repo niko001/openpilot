@@ -92,6 +92,13 @@ void AnnotatedCameraWidget::paintGL() {
   SubMaster &sm = *(s->sm);
   const double start_draw_t = millis_since_boot();
 
+  // Check if camera should be hidden
+  if (Params().getBool("HideCamera")) {
+    QPainter painter(this);
+    painter.fillRect(rect(), Qt::black);
+    return;
+  }
+
   // draw camera frame
   {
     std::lock_guard lk(frame_lock);
@@ -130,7 +137,7 @@ void AnnotatedCameraWidget::paintGL() {
   painter.setPen(Qt::NoPen);
 
   model.draw(painter, rect());
-  dmon.draw(painter, rect());
+  //dmon.draw(painter, rect());
   hud.updateState(*s);
   hud.draw(painter, rect());
 
