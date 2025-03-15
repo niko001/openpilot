@@ -4,12 +4,18 @@ import math
 import time
 import threading
 import requests
+import logging
 from datetime import datetime, timedelta
 
 import cereal.messaging as messaging
 from cereal import log
 from openpilot.common.params import Params
+from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.selfdrived.events import Alert, AlertStatus, AlertSize, Priority, VisualAlert, AudibleAlert
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("wazed")
 
 # Constants for the Waze alerts module
 WAZE_API_UPDATE_INTERVAL = 120  # Update every 2 minutes (in seconds)
@@ -83,11 +89,15 @@ def fetch_waze_alerts(lat, lon):
       if "alerts" in data:
         alerts_cache = data["alerts"]
         last_api_call_time = current_time
+        cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
+        logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API")
         return alerts_cache
       else:
-        print("No alerts field in Waze API response")
+        cloudlog.warning("Wazed: No alerts field in Waze API response")
+        logger.warning("No alerts field in Waze API response")
   except Exception as e:
-    print(f"Error fetching Waze alerts: {e}")
+    cloudlog.error(f"Wazed: Error fetching Waze alerts: {e}")
+    logger.error(f"Error fetching Waze alerts: {e}")
 
   # Return cached data if request fails
   return alerts_cache
@@ -129,8 +139,8 @@ def create_waze_alert(alert):
   alert_type = alert.get("type", "UNKNOWN")
 
   # Set alert parameters based on type
-  if alert_type in ["ACCIDENT", "ROAD_CLOSED"]:
-    # Higher priority for accidents and road closures
+  if alert_type in ["ACCIDENT", "POLICE", "HAZARD"]:
+    # Higher priority for accidents and hazards
     priority = Priority.MID
     audible = AudibleAlert.prompt
   else:
@@ -150,6 +160,10 @@ def wazed_thread():
   pm = messaging.PubMaster(['wazeAlerts'])
   sm = messaging.SubMaster(['liveLocationKalman'])
 
+  # For periodic GPS logging
+  last_gps_log_time = 0
+  GPS_LOG_INTERVAL = 60  # Log GPS position every minute
+
   while True:
     sm.update()
 
@@ -164,6 +178,13 @@ def wazed_thread():
       car_lat = loc.getPositionGeodetic().getValue()[0]
       car_lon = loc.getPositionGeodetic().getValue()[1]
       car_bearing = math.degrees(loc.getOrientationNED().getValue()[2]) % 360
+
+      # Log GPS position periodically
+      current_time = time.time()
+      if current_time - last_gps_log_time > GPS_LOG_INTERVAL:
+        cloudlog.info(f"Wazed: Current position: lat={car_lat:.6f}, lon={car_lon:.6f}, bearing={car_bearing:.1f}°")
+        logger.info(f"Current position: lat={car_lat:.6f}, lon={car_lon:.6f}, bearing={car_bearing:.1f}°")
+        last_gps_log_time = current_time
 
       # Fetch Waze alerts
       waze_alerts = fetch_waze_alerts(car_lat, car_lon)
@@ -239,8 +260,12 @@ def check_alerts_thread():
 
           # Construct and send controlsState message with our alert
           # This part depends on how openpilot handles custom alerts...
-          # For the demo, we'll just print the alert info
-          print(f"WAZE ALERT: {op_alert.alert_text_1} - {op_alert.alert_text_2}")
+          alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
+          cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
+          logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
+
+          # For demo, also print to console
+          print(f"WAZE ALERT: {alert_message}")
 
           # Add to alerted set to prevent repeat alerts
           last_alerted_uuids.add(alert_uuid)
@@ -248,6 +273,10 @@ def check_alerts_thread():
           # Clean up old UUIDs occasionally (keep max 20)
           if len(last_alerted_uuids) > 20:
             last_alerted_uuids.pop()
+
+      # Log alert statistics
+      if len(alerts_cache) > 0:
+        cloudlog.debug(f"Wazed: Monitoring {len(alerts_cache)} alerts, {len(last_alerted_uuids)} already alerted")
 
     time.sleep(CHECK_ALERTS_INTERVAL)
 
