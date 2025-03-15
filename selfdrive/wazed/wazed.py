@@ -89,14 +89,14 @@ def fetch_waze_alerts(lat, lon):
       if "alerts" in data:
         alerts_cache = data["alerts"]
         last_api_call_time = current_time
-        #cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
+        cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
         logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API")
         return alerts_cache
       else:
-        #cloudlog.warning("Wazed: No alerts field in Waze API response")
+        cloudlog.warning("Wazed: No alerts field in Waze API response")
         logger.warning("No alerts field in Waze API response")
   except Exception as e:
-    #cloudlog.error(f"Wazed: Error fetching Waze alerts: {e}")
+    cloudlog.error(f"Wazed: Error fetching Waze alerts: {e}")
     logger.error(f"Error fetching Waze alerts: {e}")
 
   # Return cached data if request fails
@@ -158,7 +158,7 @@ def wazed_thread():
   global alerts_cache
 
   pm = messaging.PubMaster(['wazeAlerts'])
-  sm = messaging.SubMaster(['liveLocationKalman'])
+  sm = messaging.SubMaster(['livePose', 'gpsLocation'])
 
   # For periodic GPS logging
   last_gps_log_time = 0
@@ -167,17 +167,19 @@ def wazed_thread():
   while True:
     sm.update()
 
-    if sm.updated['liveLocationKalman']:
-      loc = sm['liveLocationKalman'].getLiveLocationKalman()
+    if sm.updated['gpsLocation'] and sm.updated['livePose']:
+      gps = sm['gpsLocation'].getGpsLocation()
+      pose = sm['livePose'].getLivePose()
 
-      if not loc.getGpsOK():
+      # Check if we have valid GPS
+      if not sm['gpsLocation'].valid:
         time.sleep(1)
         continue
 
       # Get the car's position and bearing
-      car_lat = loc.getPositionGeodetic().getValue()[0]
-      car_lon = loc.getPositionGeodetic().getValue()[1]
-      car_bearing = math.degrees(loc.getOrientationNED().getValue()[2]) % 360
+      car_lat = gps.latitude
+      car_lon = gps.longitude
+      car_bearing = math.degrees(pose.orientationNED.x) % 360  # Convert to degrees and normalize to 0-360
 
       # Log GPS position periodically
       current_time = time.time()
