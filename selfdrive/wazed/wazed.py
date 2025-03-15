@@ -70,10 +70,7 @@ def fetch_waze_alerts(lat, lon):
 
   # Only update once every WAZE_API_UPDATE_INTERVAL
   if current_time - last_api_call_time < WAZE_API_UPDATE_INTERVAL:
-    if alerts_cache:
-      return alerts_cache
-    else:
-      return
+    return alerts_cache  # Return cache even if empty (will be an empty list, not None)
 
   # Calculate bounding box
   half_width = BOUNDING_BOX_WIDTH / 2
@@ -89,6 +86,7 @@ def fetch_waze_alerts(lat, lon):
     response = requests.get(url, timeout=10)
     if response.status_code == 200:
       data = response.json()
+      logger.info(f"Response: {response}")
       if "alerts" in data:
         alerts_cache = data["alerts"]
         last_api_call_time = current_time
@@ -236,9 +234,9 @@ def check_alerts_thread():
 
     if sm.updated['wazeAlerts']:
       # Get the car's position
-      car_lat = sm['wazeAlerts'].getWazeAlerts().getPosition().getLatitude()
-      car_lon = sm['wazeAlerts'].getWazeAlerts().getPosition().getLongitude()
-      car_bearing = sm['wazeAlerts'].getWazeAlerts().getBearing()
+      car_lat = sm['wazeAlerts'].position.latitude
+      car_lon = sm['wazeAlerts'].position.longitude
+      car_bearing = sm['wazeAlerts'].bearing
 
       # Check each alert in the cache
       for alert in alerts_cache:
