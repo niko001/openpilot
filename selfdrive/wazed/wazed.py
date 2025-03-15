@@ -23,8 +23,21 @@ BOUNDING_BOX_WIDTH = 0.07  # About 5-7 km depending on latitude
 ALERT_DISTANCE_THRESHOLD = 200  # Meters, distance to trigger alert
 CHECK_ALERTS_INTERVAL = 1.0  # Check for alerts every 1 second
 
-# Global variables
-alerts_cache = []
+# Add a mock alert for testing
+MOCK_ALERT = {
+  "type": "POLICE",
+  "location": {
+    "x": -117.187380,  # longitude
+    "y": 32.744916     # latitude
+  },
+  "street": "I-5 South",
+  "reportDescription": "Mock police alert for testing purposes",
+  "uuid": "mock-test-alert-12345",
+  "subtype": ""
+}
+
+# Global variables - Initialize with mock alert to make it immediately available
+alerts_cache = [MOCK_ALERT]
 last_api_call_time = 0
 last_alerted_uuids = set()  # To prevent showing the same alert multiple times in succession
 api_is_busy = False  # Flag to prevent concurrent API calls
@@ -98,9 +111,10 @@ def fetch_waze_alerts(lat, lon):
       try:
         data = response.json()
         if "alerts" in data:
+          # Get real alerts from API
           alerts_cache = data["alerts"]
-          cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API")
-          logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API")
+          cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API (including mock alert)")
+          logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API (including mock alert)")
         else:
           cloudlog.warning(f"Wazed: No alerts field in Waze API response. Response keys: {data.keys()}")
           logger.warning(f"No alerts field in Waze API response. Response keys: {data.keys()}")
@@ -115,6 +129,14 @@ def fetch_waze_alerts(lat, lon):
     logger.error(f"Error fetching Waze alerts: {e}")
   finally:
     api_is_busy = False  # Clear flag regardless of success/failure
+
+  # Make sure the mock alert is always in the cache, even if API response was empty
+  if not alerts_cache:
+    alerts_cache = [MOCK_ALERT]
+    logger.info("No alerts from API, using only mock POLICE alert for testing")
+  elif MOCK_ALERT not in alerts_cache:
+    alerts_cache.append(MOCK_ALERT)
+    logger.info("Added mock POLICE alert to the cache after API error")
 
   # Return cached data
   return alerts_cache
