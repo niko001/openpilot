@@ -11,7 +11,7 @@ import cereal.messaging as messaging
 from cereal import log
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
-from openpilot.selfdrive.selfdrived.events import Alert, AlertStatus, AlertSize, Priority, VisualAlert, AudibleAlert
+from openpilot.selfdrive.selfdrived.events import Alert, AlertStatus, AlertSize, Priority, VisualAlert, AudibleAlert, EventName
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -295,8 +295,18 @@ def check_alerts_thread():
         if is_ahead and alert_uuid not in last_alerted_uuids:
           op_alert = create_waze_alert(alert)
 
-          # Construct and send controlsState message with our alert
-          # This part depends on how openpilot handles custom alerts...
+          # Create onroadEvents message to trigger the alert
+          events = messaging.new_message('onroadEvents', 1)
+          events.valid = True
+          event = log.OnroadEvent.new_message()
+          event.name = EventName.wazeAlert
+          event.warning = True
+          events.onroadEvents = [event]
+
+          # Publish the alert event
+          pm = messaging.PubMaster(['onroadEvents'])
+          pm.send('onroadEvents', events)
+
           alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
           cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
           logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
