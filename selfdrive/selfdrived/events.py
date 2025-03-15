@@ -972,6 +972,14 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.WARNING: personality_changed_alert,
   },
 
+  EventName.wazeAlert: {
+    ET.WARNING: Alert(
+      "Waze Alert",
+      "",
+      AlertStatus.normal, AlertSize.mid,
+      Priority.LOW, VisualAlert.none, AudibleAlert.prompt, 3.),
+  },
+
 }
 
 

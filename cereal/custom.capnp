@@ -10,7 +10,15 @@ $Cxx.namespace("cereal");
 # DO rename the structs
 # DON'T change the identifier (e.g. @0x81c2f05a394cf4af)
 
-struct CustomReserved0 @0x81c2f05a394cf4af {
+struct WazeAlerts @0x81c2f05a394cf4af {
+  struct Position {
+    latitude @0 :Float64;
+    longitude @1 :Float64;
+  }
+
+  position @0 :Position;  # Current vehicle position
+  bearing @1 :Float32;    # Current vehicle bearing (degrees)
+  alertsCount @2 :UInt16; # Number of nearby alerts
 }
 
 struct CustomReserved1 @0xaedffd8f31e7b55d {
