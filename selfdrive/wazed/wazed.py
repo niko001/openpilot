@@ -276,9 +276,8 @@ class WazedMonitor:
     # Process events and create alerts
     alerts = self.events.create_alerts(['warning'])
     if alerts:
-      # Create selfdriveState message following the pattern in cycle_alerts.py
-      dat = messaging.new_message()
-      dat.init('selfdriveState')
+      # Create selfdriveState message
+      dat = messaging.new_message('selfdriveState')
       dat.selfdriveState.enabled = True
 
       # Set alert fields if we have an alert
