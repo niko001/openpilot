@@ -252,6 +252,7 @@ class WazedMonitor:
     self.frame = 0
     self.current_lat = 0.0
     self.current_lon = 0.0
+    self.bearing = 0.0  # Initialize bearing
     self.last_fetch_time = 0
     self.fetch_interval = 1.0
 
@@ -297,6 +298,10 @@ class WazedMonitor:
 
   def check_alerts(self):
     """Check each alert in the cache and add events if needed."""
+    # Skip if we don't have valid location data
+    if self.current_lat == 0.0 and self.current_lon == 0.0:
+      return
+
     # Check each alert in the cache
     for alert in alerts_cache:
       if 'location' not in alert or 'x' not in alert['location'] or 'y' not in alert['location']:
@@ -306,29 +311,38 @@ class WazedMonitor:
       alert_lon = alert['location']['x']
       alert_uuid = alert.get('uuid', '')
 
-      is_ahead, distance = is_approaching(self.current_lat, self.current_lon, self.bearing,
-                                         alert_lat, alert_lon)
+      # Skip alerts with invalid coordinates
+      if alert_lat == 0.0 and alert_lon == 0.0:
+        continue
 
-      # If we're approaching this alert and haven't alerted about it recently
-      if is_ahead and alert_uuid not in last_alerted_uuids:
-        self.events.add(EventName.wazeAlert)
+      try:
+        is_ahead, distance = is_approaching(self.current_lat, self.current_lon, self.bearing,
+                                           alert_lat, alert_lon)
 
-        # Custom title/text for this specific alert
-        title, text = get_alert_text(alert)
-        alert_type = alert.get("type", "UNKNOWN")
+        # If we're approaching this alert and haven't alerted about it recently
+        if is_ahead and alert_uuid not in last_alerted_uuids:
+          self.events.add(EventName.wazeAlert)
 
-        # Add to alerted set to prevent repeat alerts
-        last_alerted_uuids.add(alert_uuid)
+          # Custom title/text for this specific alert
+          title, text = get_alert_text(alert)
+          alert_type = alert.get("type", "UNKNOWN")
 
-        # Print alert info
-        alert_message = f"{title} - {text}"
-        cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert_type}")
-        logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert_type}")
-        print(f"WAZE ALERT: {alert_message}")
+          # Add to alerted set to prevent repeat alerts
+          last_alerted_uuids.add(alert_uuid)
 
-        # Clean up old UUIDs occasionally (keep max 20)
-        if len(last_alerted_uuids) > 20:
-          last_alerted_uuids.pop()
+          # Print alert info
+          alert_message = f"{title} - {text}"
+          cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert_type}")
+          logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert_type}")
+          print(f"WAZE ALERT: {alert_message}")
+
+          # Clean up old UUIDs occasionally (keep max 20)
+          if len(last_alerted_uuids) > 20:
+            last_alerted_uuids.pop()
+      except Exception as e:
+        # Log any errors but don't crash
+        cloudlog.exception(f"Wazed: Error processing alert: {e}")
+        logger.exception(f"Error processing alert: {e}")
 
 def main():
   logger.info("Wazed: Starting Waze Alerts extension")
