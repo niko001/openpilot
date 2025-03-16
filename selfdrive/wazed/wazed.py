@@ -284,7 +284,6 @@ class WazedMonitor:
         'alertText2': alert.alert_text_2,
         'alertSize': alert.alert_size,
         'alertStatus': alert.alert_status,
-        'alertBlinkingRate': alert.alert_rate,
         'alertType': alert.alert_type,
         'alertSound': alert.audible_alert,
         'enabled': True,
