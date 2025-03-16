@@ -11,7 +11,7 @@ import cereal.messaging as messaging
 from cereal import log
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
-from openpilot.selfdrive.selfdrived.events import Alert, AlertStatus, AlertSize, Priority, VisualAlert, AudibleAlert, EventName
+from openpilot.selfdrive.selfdrived.events import Alert, AlertStatus, AlertSize, Priority, VisualAlert, AudibleAlert, EventName, Events
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -171,27 +171,6 @@ def get_alert_text(alert):
 
   return title, text
 
-def create_waze_alert(alert):
-  """Create an OpenPilot alert for a Waze alert."""
-  title, text = get_alert_text(alert)
-
-  alert_type = alert.get("type", "UNKNOWN")
-
-  # Set alert parameters based on type
-  if alert_type in ["ACCIDENT", "POLICE", "HAZARD"]:
-    # Higher priority for accidents and hazards
-    priority = Priority.MID
-    audible = AudibleAlert.prompt
-  else:
-    priority = Priority.LOW
-    audible = AudibleAlert.none
-
-  return Alert(
-    title, text,
-    AlertStatus.normal, AlertSize.mid,
-    priority, VisualAlert.none, audible, 5.0
-  )
-
 def wazed_thread():
   """Background thread to fetch Waze alerts."""
   global alerts_cache
@@ -265,92 +244,104 @@ def wazed_thread():
 
     time.sleep(CHECK_ALERTS_INTERVAL)
 
-def check_alerts_thread():
-  """Thread to check if we need to display alerts to the user."""
-  global last_alerted_uuids
+class WazedMonitor:
+  def __init__(self):
+    self.sm = messaging.SubMaster(['wazeAlerts'])
+    self.pm = messaging.PubMaster(['controlsState'])
+    self.events = Events()
+    self.frame = 0
+    self.current_lat = 0.0
+    self.current_lon = 0.0
+    self.last_fetch_time = 0
+    self.fetch_interval = 1.0
 
-  sm = messaging.SubMaster(['wazeAlerts'])
+  def update(self):
+    """Main update loop."""
+    self.frame += 1
+    self.sm.update()
 
-  while True:
-    sm.update()
-
-    if sm.updated['wazeAlerts']:
+    if self.sm.updated['wazeAlerts']:
       # Get the car's position
-      car_lat = sm['wazeAlerts'].position.latitude
-      car_lon = sm['wazeAlerts'].position.longitude
-      car_bearing = sm['wazeAlerts'].bearing
+      self.current_lat = self.sm['wazeAlerts'].position.latitude
+      self.current_lon = self.sm['wazeAlerts'].position.longitude
+      self.bearing = self.sm['wazeAlerts'].bearing
 
-      # Check each alert in the cache
-      for alert in alerts_cache:
-        if 'location' not in alert or 'x' not in alert['location'] or 'y' not in alert['location']:
-          continue
+    current_time = time.time()
+    if current_time - self.last_fetch_time >= self.fetch_interval:
+      print(f"\nTime to fetch alerts (last fetch was {current_time - self.last_fetch_time:.1f}s ago)")
+      self.check_alerts()
+      self.last_fetch_time = current_time
 
-        alert_lat = alert['location']['y']
-        alert_lon = alert['location']['x']
-        alert_uuid = alert.get('uuid', '')
+    # Process events and create alerts
+    alerts = self.events.create_alerts(['warning'])
+    if alerts:
+      cs = messaging.new_message('controlsState')
+      cs.valid = True
+      alert = alerts[0]
+      cs.controlsState = {
+        'alertText1': alert.alert_text_1,
+        'alertText2': alert.alert_text_2,
+        'alertSize': alert.alert_size,
+        'alertStatus': alert.alert_status,
+        'alertBlinkingRate': alert.alert_rate,
+        'alertType': alert.alert_type,
+        'alertSound': alert.audible_alert,
+        'enabled': True,
+        'active': True,
+        'cumLagMs': 0.0
+      }
+      self.pm.send('controlsState', cs)
 
-        is_ahead, distance = is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon)
+    # Clear events for next iteration
+    self.events.clear()
 
-        # If we're approaching this alert and haven't alerted about it recently
-        if is_ahead and alert_uuid not in last_alerted_uuids:
-          op_alert = create_waze_alert(alert)
+  def check_alerts(self):
+    """Check each alert in the cache and add events if needed."""
+    # Check each alert in the cache
+    for alert in alerts_cache:
+      if 'location' not in alert or 'x' not in alert['location'] or 'y' not in alert['location']:
+        continue
 
-          # Create a selfdriveState message to display our custom alert
-          ss_alert = messaging.new_message('selfdriveState')
+      alert_lat = alert['location']['y']
+      alert_lon = alert['location']['x']
+      alert_uuid = alert.get('uuid', '')
 
-          # Initialize selfdriveState fields
-          ss_alert.valid = True
-          ss_alert.selfdriveState.enabled = True
+      is_ahead, distance = is_approaching(self.current_lat, self.current_lon, self.bearing,
+                                         alert_lat, alert_lon)
 
-          # Set the alert fields directly
-          ss_alert.selfdriveState.alertText1 = op_alert.alert_text_1
-          ss_alert.selfdriveState.alertText2 = op_alert.alert_text_2
-          ss_alert.selfdriveState.alertStatus = op_alert.alert_status
-          ss_alert.selfdriveState.alertSize = op_alert.alert_size
-          ss_alert.selfdriveState.alertSound = op_alert.audible_alert
-          ss_alert.selfdriveState.alertType = f"wazeAlert/{alert.get('type', 'UNKNOWN')}"
+      # If we're approaching this alert and haven't alerted about it recently
+      if is_ahead and alert_uuid not in last_alerted_uuids:
+        self.events.add(EventName.wazeAlert)
 
-          # Publish the alert via selfdriveState
-          pm = messaging.PubMaster(['selfdriveState'])
-          pm.send('selfdriveState', ss_alert)
+        # Custom title/text for this specific alert
+        title, text = get_alert_text(alert)
+        alert_type = alert.get("type", "UNKNOWN")
 
-          cloudlog.info(f"Wazed: Published custom alert: {op_alert.alert_text_1}")
+        # Add to alerted set to prevent repeat alerts
+        last_alerted_uuids.add(alert_uuid)
 
-          alert_message = f"{op_alert.alert_text_1} - {op_alert.alert_text_2}"
-          cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
-          logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
+        # Print alert info
+        alert_message = f"{title} - {text}"
+        cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert_type}")
+        logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert_type}")
+        print(f"WAZE ALERT: {alert_message}")
 
-          # For demo, also print to console
-          print(f"WAZE ALERT: {alert_message}")
-
-          # Add to alerted set to prevent repeat alerts
-          last_alerted_uuids.add(alert_uuid)
-
-          # Clean up old UUIDs occasionally (keep max 20)
-          if len(last_alerted_uuids) > 20:
-            last_alerted_uuids.pop()
-
-      # Log alert statistics
-      if len(alerts_cache) > 0:
-        logger.info(f"Wazed: Monitoring {len(alerts_cache)} alerts, {len(last_alerted_uuids)} already alerted")
-
-    time.sleep(CHECK_ALERTS_INTERVAL)
+        # Clean up old UUIDs occasionally (keep max 20)
+        if len(last_alerted_uuids) > 20:
+          last_alerted_uuids.pop()
 
 def main():
   logger.info("Wazed: Starting Waze Alerts extension")
 
-  # Start the background threads
-  threads = [
-    threading.Thread(target=wazed_thread, daemon=True),
-    threading.Thread(target=check_alerts_thread, daemon=True)
-  ]
+  # Start the background thread for fetching alerts
+  wazed_fetch_thread = threading.Thread(target=wazed_thread, daemon=True)
+  wazed_fetch_thread.start()
 
-  for t in threads:
-    t.start()
-
-  # Keep the main thread alive
+  # Start the monitor in the main thread
+  monitor = WazedMonitor()
   while True:
-    time.sleep(10)
+    monitor.update()
+    time.sleep(0.1)  # Run at 10Hz
 
 if __name__ == "__main__":
   main()
