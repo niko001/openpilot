@@ -247,7 +247,7 @@ def wazed_thread():
 class WazedMonitor:
   def __init__(self):
     self.sm = messaging.SubMaster(['wazeAlerts'])
-    self.pm = messaging.PubMaster(['controlsState'])
+    self.pm = messaging.PubMaster(['selfdriveState'])  # Changed to selfdriveState
     self.events = Events()
     self.frame = 0
     self.current_lat = 0.0
@@ -276,21 +276,22 @@ class WazedMonitor:
     # Process events and create alerts
     alerts = self.events.create_alerts(['warning'])
     if alerts:
-      cs = messaging.new_message('controlsState')
-      cs.valid = True
+      # Create selfdriveState message following the pattern in cycle_alerts.py
+      dat = messaging.new_message()
+      dat.init('selfdriveState')
+      dat.selfdriveState.enabled = True
+
+      # Set alert fields if we have an alert
       alert = alerts[0]
-      cs.controlsState = {
-        'alertText1': alert.alert_text_1,
-        'alertText2': alert.alert_text_2,
-        'alertSize': alert.alert_size,
-        'alertStatus': alert.alert_status,
-        'alertType': alert.alert_type,
-        'alertSound': alert.audible_alert,
-        'enabled': True,
-        'active': True,
-        'cumLagMs': 0.0
-      }
-      self.pm.send('controlsState', cs)
+      dat.selfdriveState.alertText1 = alert.alert_text_1
+      dat.selfdriveState.alertText2 = alert.alert_text_2
+      dat.selfdriveState.alertSize = alert.alert_size
+      dat.selfdriveState.alertStatus = alert.alert_status
+      dat.selfdriveState.alertType = alert.alert_type
+      dat.selfdriveState.alertSound = alert.audible_alert
+
+      # Send the message
+      self.pm.send('selfdriveState', dat)
 
     # Clear events for next iteration
     self.events.clear()
