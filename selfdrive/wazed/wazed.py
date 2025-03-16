@@ -255,6 +255,10 @@ class WazedMonitor:
     self.bearing = 0.0  # Initialize bearing
     self.last_fetch_time = 0
     self.fetch_interval = 1.0
+    self.alert_start_time = 0  # When alert started showing
+    self.alert_duration = 10.0  # Alert display duration in seconds
+    self.active_alert = None  # Currently active alert
+    self.showing_alert = False  # Whether an alert is currently showing
 
   def update(self):
     """Main update loop."""
@@ -268,32 +272,42 @@ class WazedMonitor:
       self.bearing = self.sm['wazeAlerts'].bearing
 
     current_time = time.time()
+
+    # Check for new alerts periodically
     if current_time - self.last_fetch_time >= self.fetch_interval:
       print(f"\nTime to fetch alerts (last fetch was {current_time - self.last_fetch_time:.1f}s ago)")
-      self.check_alerts()
+      self.check_alerts()  # This now directly sends alerts without using events
       self.last_fetch_time = current_time
 
-    # Process events and create alerts
-    alerts = self.events.create_alerts(['warning'])
-    if alerts:
-      # Create selfdriveState message
+    # Handle alert timing - if alert has been showing for too long, clear it
+    if self.showing_alert and (current_time - self.alert_start_time > self.alert_duration):
+      self.showing_alert = False
+      self.active_alert = None
+      # Send empty alert to clear display
       dat = messaging.new_message('selfdriveState')
       dat.selfdriveState.enabled = True
-
-      # Set alert fields if we have an alert
-      alert = alerts[0]
-      dat.selfdriveState.alertText1 = alert.alert_text_1
-      dat.selfdriveState.alertText2 = alert.alert_text_2
-      dat.selfdriveState.alertSize = alert.alert_size
-      dat.selfdriveState.alertStatus = alert.alert_status
-      dat.selfdriveState.alertType = alert.alert_type
-      dat.selfdriveState.alertSound = alert.audible_alert
-
-      # Send the message
       self.pm.send('selfdriveState', dat)
+      print("Alert cleared after timeout")
 
-    # Clear events for next iteration
-    self.events.clear()
+  def create_custom_waze_alert(self, alert_data):
+    """Create a custom Alert object for a specific Waze alert."""
+    title, text = get_alert_text(alert_data)
+    alert_type = alert_data.get("type", "UNKNOWN")
+
+    # Set alert parameters based on type
+    if alert_type in ["ACCIDENT", "POLICE", "HAZARD"]:
+      # Higher priority for accidents and hazards
+      priority = Priority.MID
+      audible = AudibleAlert.prompt
+    else:
+      priority = Priority.LOW
+      audible = AudibleAlert.none
+
+    return Alert(
+      title, text,
+      AlertStatus.normal, AlertSize.mid,
+      priority, VisualAlert.none, audible, 5.0
+    )
 
   def check_alerts(self):
     """Check each alert in the cache and add events if needed."""
@@ -320,24 +334,44 @@ class WazedMonitor:
 
         # If we're approaching this alert and haven't alerted about it recently
         if is_ahead and alert_uuid not in last_alerted_uuids:
-          self.events.add(EventName.wazeAlert)
+          # Don't use Events system directly, create our own custom alert
+          custom_alert = self.create_custom_waze_alert(alert)
 
-          # Custom title/text for this specific alert
-          title, text = get_alert_text(alert)
-          alert_type = alert.get("type", "UNKNOWN")
+          # Create selfdriveState message directly
+          dat = messaging.new_message('selfdriveState')
+          dat.selfdriveState.enabled = True
+
+          # Set alert fields with our custom alert
+          dat.selfdriveState.alertText1 = custom_alert.alert_text_1
+          dat.selfdriveState.alertText2 = custom_alert.alert_text_2  # This should now be visible
+          dat.selfdriveState.alertSize = custom_alert.alert_size
+          dat.selfdriveState.alertStatus = custom_alert.alert_status
+          dat.selfdriveState.alertType = f"wazeAlert/{alert.get('type', 'UNKNOWN')}"  # Custom alert type
+          dat.selfdriveState.alertSound = custom_alert.audible_alert
+
+          # Send the message immediately
+          self.pm.send('selfdriveState', dat)
+
+          # Mark that we're showing an alert and record the time
+          self.showing_alert = True
+          self.alert_start_time = time.time()
+          self.active_alert = custom_alert
 
           # Add to alerted set to prevent repeat alerts
           last_alerted_uuids.add(alert_uuid)
 
           # Print alert info
-          alert_message = f"{title} - {text}"
-          cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert_type}")
-          logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert_type}")
+          alert_message = f"{custom_alert.alert_text_1} - {custom_alert.alert_text_2}"
+          cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
+          logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
           print(f"WAZE ALERT: {alert_message}")
 
           # Clean up old UUIDs occasionally (keep max 20)
           if len(last_alerted_uuids) > 20:
             last_alerted_uuids.pop()
+
+          # Only show one alert at a time
+          return
       except Exception as e:
         # Log any errors but don't crash
         cloudlog.exception(f"Wazed: Error processing alert: {e}")
