@@ -106,7 +106,7 @@ procs = [
   PythonProcess("updated", "system.updated.updated", only_offroad, enabled=not PC),
   PythonProcess("uploader", "system.loggerd.uploader", always_run),
   PythonProcess("statsd", "system.statsd", always_run),
-  PythonProcess("wazed", "selfdrive.wazed.wazed", only_onroad),
+  #PythonProcess("wazed", "selfdrive.wazed.wazed", only_onroad),
 
   # debug procs
   NativeProcess("bridge", "cereal/messaging", ["./bridge"], notcar),
