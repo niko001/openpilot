@@ -181,8 +181,9 @@ def get_alert_text(alert):
 
   return title, text
 
-# Thread-safe queue for GPS updates
+# Thread-safe queues for communication between threads
 gps_queue = queue.Queue()
+alert_queue = queue.Queue()  # Queue for alert events
 
 def wazed_fetch_thread():
   """Background thread to fetch Waze alerts without sending messages."""
@@ -233,10 +234,11 @@ def wazed_fetch_thread():
 
     time.sleep(CHECK_ALERTS_INTERVAL)
 
+# Queue for alerts that need to be sent
+alert_message_queue = queue.Queue()
+
 class WazedMonitor:
   def __init__(self):
-    self.sm = messaging.SubMaster(['wazeAlerts'])
-    self.pm = messaging.PubMaster(['wazeAlerts'])  # Use wazeAlerts publisher
     self.events = Events()
     self.frame = 0
     self.current_lat = 0.0
@@ -252,14 +254,6 @@ class WazedMonitor:
   def update(self):
     """Main update loop."""
     self.frame += 1
-    self.sm.update()
-
-    if self.sm.updated['wazeAlerts']:
-      # Get the car's position
-      self.current_lat = self.sm['wazeAlerts'].position.latitude
-      self.current_lon = self.sm['wazeAlerts'].position.longitude
-      self.bearing = self.sm['wazeAlerts'].bearing
-
     current_time = time.time()
 
     # Check for new alerts periodically
@@ -269,25 +263,22 @@ class WazedMonitor:
       # Only check for new alerts if we're not currently showing one
       # or if the current alert has been showing for at least 5 seconds
       if not self.showing_alert or (current_time - self.alert_start_time > 5.0):
-        self.check_alerts()  # This directly sends alerts without using events
+        self.check_alerts()  # This prepares alerts but doesn't send them
 
       self.last_fetch_time = current_time
 
     # If we have an active alert that has been showing for too long, clear it
     if self.showing_alert and (current_time - self.alert_start_time > self.alert_duration):
-      # Send a message to clear the alert
-      alert_msg = messaging.new_message('wazeAlerts')
-      alert_msg.wazeAlerts.position.latitude = self.current_lat
-      alert_msg.wazeAlerts.position.longitude = self.current_lon
-      alert_msg.wazeAlerts.bearing = self.bearing
-      alert_msg.wazeAlerts.alertsCount = 0
-      # Clear alert display
-      alert_msg.wazeAlerts.showAlert = False
-      alert_msg.wazeAlerts.alertText1 = ""
-      alert_msg.wazeAlerts.alertText2 = ""
-      alert_msg.wazeAlerts.alertType = ""
-      alert_msg.wazeAlerts.alertSound = 0
-      self.pm.send('wazeAlerts', alert_msg)
+      # Create a message to clear the alert and put it in the queue
+      alert_msg = {
+        'type': 'clear',
+        'position': {
+          'latitude': self.current_lat,
+          'longitude': self.current_lon,
+          'bearing': self.bearing
+        }
+      }
+      alert_message_queue.put(alert_msg)
 
       # Update our internal state
       self.showing_alert = False
@@ -318,7 +309,7 @@ class WazedMonitor:
       return 0  # No sound
 
   def check_alerts(self):
-    """Check each alert in the cache and add events if needed."""
+    """Check each alert in the cache and queue alerts if needed."""
     # Skip if we don't have valid location data
     if self.current_lat == 0.0 and self.current_lon == 0.0:
       return
@@ -346,23 +337,26 @@ class WazedMonitor:
           title, text = get_alert_text(alert)
           sound_id = self.get_waze_alert_sound(alert)
 
-          # Create wazeAlerts message with the alert information
-          alert_msg = messaging.new_message('wazeAlerts')
-          alert_msg.wazeAlerts.position.latitude = self.current_lat
-          alert_msg.wazeAlerts.position.longitude = self.current_lon
-          alert_msg.wazeAlerts.bearing = self.bearing
-          alert_msg.wazeAlerts.alertsCount = 1
+          # Create alert data dictionary
+          alert_data = {
+            'type': 'alert',
+            'position': {
+              'latitude': self.current_lat,
+              'longitude': self.current_lon,
+              'bearing': self.bearing
+            },
+            'alert': {
+              'title': title,
+              'text': text,
+              'distance': distance,
+              'alert_type': alert.get('type', 'UNKNOWN'),
+              'sound_id': sound_id,
+              'uuid': alert_uuid
+            }
+          }
 
-          # Set the alert display information
-          alert_msg.wazeAlerts.showAlert = True
-          alert_msg.wazeAlerts.alertText1 = title
-          alert_msg.wazeAlerts.alertText2 = text
-          alert_msg.wazeAlerts.alertType = alert.get('type', 'UNKNOWN')
-          alert_msg.wazeAlerts.alertSound = sound_id
-          alert_msg.wazeAlerts.alertDistance = distance
-
-          # Send the message immediately
-          self.pm.send('wazeAlerts', alert_msg)
+          # Queue the alert for sending by the main thread
+          alert_message_queue.put(alert_data)
 
           # Mark that we're showing an alert and record the time
           self.showing_alert = True
@@ -392,7 +386,7 @@ class WazedMonitor:
 def main():
   logger.info("Wazed: Starting Waze Alerts extension")
 
-  # Create a single PubMaster instance
+  # Create a single PubMaster instance - THIS IS THE ONLY PUBLISHER
   pm = messaging.PubMaster(['wazeAlerts'])
 
   # Start the background thread for fetching alerts and GPS data
@@ -401,7 +395,6 @@ def main():
 
   # Start the monitor in the main thread
   monitor = WazedMonitor()
-  monitor.pm = pm  # Use the same PubMaster instance
 
   # Set initial position data
   try:
@@ -428,6 +421,60 @@ def main():
 
     # Update the monitor
     monitor.update()
+
+    # Process any alerts in the queue
+    try:
+      # Non-blocking check for alert messages
+      alert_data = alert_message_queue.get(block=False)
+
+      # Create and send the appropriate message based on alert_data
+      if alert_data['type'] == 'alert':
+        # Create new alert message
+        alert_msg = messaging.new_message('wazeAlerts')
+
+        # Set position data
+        alert_msg.wazeAlerts.position.latitude = alert_data['position']['latitude']
+        alert_msg.wazeAlerts.position.longitude = alert_data['position']['longitude']
+        alert_msg.wazeAlerts.bearing = alert_data['position']['bearing']
+        alert_msg.wazeAlerts.alertsCount = 1
+
+        # Set alert data
+        alert_msg.wazeAlerts.showAlert = True
+        alert_msg.wazeAlerts.alertText1 = alert_data['alert']['title']
+        alert_msg.wazeAlerts.alertText2 = alert_data['alert']['text']
+        alert_msg.wazeAlerts.alertType = alert_data['alert']['alert_type']
+        alert_msg.wazeAlerts.alertSound = alert_data['alert']['sound_id']
+        alert_msg.wazeAlerts.alertDistance = alert_data['alert']['distance']
+
+        # Send the message
+        pm.send('wazeAlerts', alert_msg)
+        logger.info(f"Sent alert: {alert_data['alert']['title']}")
+
+      elif alert_data['type'] == 'clear':
+        # Create message to clear alert
+        alert_msg = messaging.new_message('wazeAlerts')
+
+        # Set position data
+        alert_msg.wazeAlerts.position.latitude = alert_data['position']['latitude']
+        alert_msg.wazeAlerts.position.longitude = alert_data['position']['longitude']
+        alert_msg.wazeAlerts.bearing = alert_data['position']['bearing']
+        alert_msg.wazeAlerts.alertsCount = 0
+
+        # Clear alert display
+        alert_msg.wazeAlerts.showAlert = False
+        alert_msg.wazeAlerts.alertText1 = ""
+        alert_msg.wazeAlerts.alertText2 = ""
+        alert_msg.wazeAlerts.alertType = ""
+        alert_msg.wazeAlerts.alertSound = 0
+
+        # Send the message
+        pm.send('wazeAlerts', alert_msg)
+        logger.info("Sent clear alert message")
+
+    except queue.Empty:
+      # No new alerts to process
+      pass
+
     time.sleep(0.1)  # Run at 10Hz
 
 if __name__ == "__main__":
