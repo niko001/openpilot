@@ -72,11 +72,6 @@ def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshol
   """Determine if car is approaching the alert within the threshold distance."""
   distance = haversine_distance(car_lat, car_lon, alert_lat, alert_lon)
 
-  # For the mock alert, always return True for testing
-  if alert_lat == MOCK_ALERT["location"]["y"] and alert_lon == MOCK_ALERT["location"]["x"]:
-    logger.info(f"Mock alert detected at distance {distance:.1f}m, forcing trigger")
-    return True, distance
-
   # If we're already too far, return False immediately
   if distance > threshold:
     return False, distance
