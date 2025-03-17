@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import json
 import math
 import time
@@ -7,8 +6,7 @@ import threading
 import requests
 import logging
 import queue
-
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import cereal.messaging as messaging
 from cereal import log
@@ -16,19 +14,7 @@ from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.selfdrived.events import Events, EventName, Alert, AlertStatus, AlertSize, Priority, VisualAlert, AudibleAlert
 
-################################################################################
-# Constants and Alert Mappings
-################################################################################
-
-WAZE_API_UPDATE_INTERVAL = 120  # Update every 2 minutes
-BOUNDING_BOX_WIDTH = 0.07       # About 5-7 km depending on latitude
-ALERT_DISTANCE_THRESHOLD = 200  # Meters
-CHECK_ALERTS_INTERVAL = 1.0     # Check for alerts every 1 second
-
-# Custom Waze alert event name -- this must be declared in events.py
-WAZE_EVENT_NAME = EventName.wazeAlert  # (Requires definition in events.py)
-
-# Example alert types for Waze; you may add more if needed
+# Define custom Waze audible alert IDs (matching soundd.py sound_list)
 WAZE_ALERT_HAZARD = 10
 WAZE_ALERT_JAM = 11
 WAZE_ALERT_ACCIDENT = 12
@@ -37,7 +23,18 @@ WAZE_ALERT_ROAD_CLOSED = 14
 WAZE_ALERT_SPEED_CAMERA = 15
 WAZE_ALERT_REDLIGHT_CAMERA = 16
 
-# Mock alert for testing
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("wazed")
+
+# Constants for the Waze alerts module
+WAZE_API_UPDATE_INTERVAL = 120  # Update every 2 minutes (in seconds)
+BOUNDING_BOX_WIDTH = 0.07  # About 5-7 km depending on latitude
+ALERT_DISTANCE_THRESHOLD = 200  # Meters, distance to trigger alert
+CHECK_ALERTS_INTERVAL = 1.0  # Check for alerts every 1 second
+ALERT_DURATION = 10.0  # Display alert for 10 seconds
+
+# Add a mock alert for testing
 MOCK_ALERT = {
   "type": "POLICE",
   "location": {
@@ -50,74 +47,69 @@ MOCK_ALERT = {
   "subtype": ""
 }
 
-# Global state
+# Global variables
 alerts_cache = [MOCK_ALERT]
 last_api_call_time = 0
-last_alerted_uuids = set()
-api_is_busy = False
-
-# Logging setup
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("wazed")
-
-################################################################################
-# Utility Functions
-################################################################################
+last_alerted_uuids = set()  # To prevent showing the same alert multiple times in succession
+api_is_busy = False  # Flag to prevent concurrent API calls
+current_alert = None  # Currently active alert
+alert_start_time = 0  # When the current alert started showing
 
 def haversine_distance(lat1, lon1, lat2, lon2):
-  """Compute distance in meters between two lat/lon points on Earth."""
+  """Calculate the great circle distance between two points on the earth."""
+  # Convert decimal degrees to radians
   lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+
+  # Haversine formula
   dlon = lon2 - lon1
   dlat = lat2 - lat1
-  a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+  a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
   c = 2 * math.asin(math.sqrt(a))
-  return 6371000 * c  # Earth radius in meters
+  r = 6371000  # Radius of Earth in meters
+  return c * r
 
-def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon,
-                   threshold=ALERT_DISTANCE_THRESHOLD):
-  """
-  Return (approaching_bool, distance).
-  approaching_bool is True if we are within 'threshold' distance and heading roughly toward alert.
-  """
+def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshold=ALERT_DISTANCE_THRESHOLD):
+  """Determine if car is approaching the alert within the threshold distance."""
   distance = haversine_distance(car_lat, car_lon, alert_lat, alert_lon)
+
+  # If we're already too far, return False immediately
   if distance > threshold:
     return False, distance
 
+  # Calculate bearing to alert
   lat1, lon1, lat2, lon2 = map(math.radians, [car_lat, car_lon, alert_lat, alert_lon])
   dlon = lon2 - lon1
   y = math.sin(dlon) * math.cos(lat2)
   x = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
   bearing_to_alert = math.degrees(math.atan2(y, x)) % 360
 
-  angle_diff = min(
-    abs(bearing_to_alert - car_bearing),
-    abs(bearing_to_alert - car_bearing + 360),
-    abs(bearing_to_alert - car_bearing - 360)
-  )
+  # Check if we're heading toward the alert (within 90 degrees)
+  angle_diff = min(abs(bearing_to_alert - car_bearing), abs(bearing_to_alert - car_bearing + 360),
+                  abs(bearing_to_alert - car_bearing - 360))
 
-  return (angle_diff < 90 and distance <= threshold), distance
+  return angle_diff < 90 and distance <= threshold, distance
 
 def fetch_waze_alerts(lat, lon):
-  """
-  Fetch alerts from the Waze API, stored in global 'alerts_cache'.
-  Rate-limited by WAZE_API_UPDATE_INTERVAL, concurrency-limited by 'api_is_busy'.
-  """
+  """Fetch alerts from the Waze API using the specified coordinates as the center of the bounding box."""
   global last_api_call_time, alerts_cache, api_is_busy
 
   current_time = time.time()
+
+  # Only update once every WAZE_API_UPDATE_INTERVAL and ensure we're not already making an API call
   if current_time - last_api_call_time < WAZE_API_UPDATE_INTERVAL or api_is_busy:
-    return alerts_cache
+    return alerts_cache  # Return cache even if empty (will be an empty list, not None)
 
-  api_is_busy = True
+  api_is_busy = True  # Set flag to prevent concurrent API calls
 
+  # Calculate bounding box
   half_width = BOUNDING_BOX_WIDTH / 2
   top = lat + half_width
   bottom = lat - half_width
   left = lon - half_width
   right = lon + half_width
 
-  url = (f"https://www.waze.com/live-map/api/georss?"
-         f"top={top}&bottom={bottom}&left={left}&right={right}&env=row&types=alerts")
+  # Construct the API URL
+  url = f"https://www.waze.com/live-map/api/georss?top={top}&bottom={bottom}&left={left}&right={right}&env=row&types=alerts"
 
   try:
     logger.info(f"Wazed: Making API request to {url}")
@@ -126,73 +118,78 @@ def fetch_waze_alerts(lat, lon):
     logger.info(f"Wazed: Response status: {response.status_code}")
 
     if response.status_code == 200:
+      response_text = response.text
+      logger.info(f"Wazed: Response content: {response_text[:500]}..." if len(response_text) > 500 else response_text)
+
       try:
         data = response.json()
         if "alerts" in data:
+          # Get real alerts from API
           alerts_cache = data["alerts"]
-          cloudlog.info(f"Wazed: {len(alerts_cache)} alerts from Waze (plus mock).")
-          logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API.")
+          cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API (including mock alert)")
+          logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API (including mock alert)")
         else:
-          cloudlog.warning("Wazed: No 'alerts' field in response.")
-          logger.warning("No 'alerts' field in Waze API response.")
+          cloudlog.warning(f"Wazed: No alerts field in Waze API response. Response keys: {data.keys()}")
+          logger.warning(f"No alerts field in Waze API response. Response keys: {data.keys()}")
       except json.JSONDecodeError as je:
-        cloudlog.error(f"Wazed: JSON parse error: {je}")
-        logger.error(f"JSON parse error: {je}")
+        cloudlog.error(f"Wazed: JSON parsing error: {je}")
+        logger.error(f"JSON parsing error: {je}")
     else:
-      cloudlog.warning(f"Wazed: Non-200 response: {response.status_code}")
-      logger.warning(f"Non-200 response from Waze: {response.status_code}")
-
+      cloudlog.warning(f"Wazed: Non-200 response from API: {response.status_code}")
+      logger.warning(f"Non-200 response from API: {response.status_code}")
   except Exception as e:
-    cloudlog.error(f"Wazed: API error: {e}")
+    cloudlog.error(f"Wazed: Error fetching Waze alerts: {e}")
     logger.error(f"Error fetching Waze alerts: {e}")
-
   finally:
-    api_is_busy = False
+    api_is_busy = False  # Clear flag regardless of success/failure
 
-  # Ensure mock alert is present
+  # Make sure the mock alert is always in the cache, even if API response was empty
   if not alerts_cache:
     alerts_cache = [MOCK_ALERT]
-    logger.info("Wazed: Using only mock POLICE alert.")
+    logger.info("No alerts from API, using only mock POLICE alert for testing")
   elif MOCK_ALERT not in alerts_cache:
     alerts_cache.append(MOCK_ALERT)
-    logger.info("Wazed: Added mock POLICE alert to the list.")
+    logger.info("Added mock POLICE alert to the cache after API error")
 
+  # Return cached data
   return alerts_cache
 
 def get_alert_text(alert):
-  """Return a (title, text) tuple for the alert."""
+  """Generate alert text based on the Waze alert data."""
   alert_type = alert.get("type", "UNKNOWN")
   street = alert.get("street", "")
   description = alert.get("reportDescription", "")
 
-  title_map = {
+  # Format title based on alert type
+  title_by_type = {
     "ACCIDENT": "Accident Ahead",
     "JAM": "Traffic Jam Ahead",
     "POLICE": "Police Ahead",
     "HAZARD": "Hazard Ahead",
     "ROAD_CLOSED": "Road Closed Ahead"
   }
-  title = title_map.get(alert_type, f"{alert_type} Ahead")
 
-  # Build text
+  title = title_by_type.get(alert_type, f"{alert_type} Ahead")
+
+  # Format the description
   text = ""
   if street:
     text += f"On {street}"
-  if description:
+
+  if description and len(description) > 0:
+    # Truncate description if too long
     if len(description) > 100:
       description = description[:97] + "..."
     text += f"\n{description}"
 
   return title, text
 
-def get_waze_alert_sound(alert):
-  """
-  Return an integer representing which sound to play, if any.
-  Not directly used by the openpilot UI (which might use the event's audibleAlert).
-  """
-  alert_type = alert.get("type", "UNKNOWN")
-  subtype = alert.get("subtype", "")
+def get_waze_alert_sound(alert_data):
+  """Get the alert sound ID based on alert type."""
+  alert_type = alert_data.get("type", "UNKNOWN")
+  subtype = alert_data.get("subtype", "")
 
+  # Map alert types to sound IDs
   if alert_type == "ACCIDENT":
     return WAZE_ALERT_ACCIDENT
   elif alert_type == "POLICE":
@@ -208,51 +205,80 @@ def get_waze_alert_sound(alert):
   elif subtype == "REDLIGHT_CAMERA":
     return WAZE_ALERT_REDLIGHT_CAMERA
   else:
-    return 0
+    return 0  # No sound
 
-################################################################################
-# Main Waze Monitoring
-################################################################################
-
-# We'll queue GPS data from openpilot, or we can simulate it if needed
-gps_queue = queue.Queue()
-
-class WazedMonitor:
-  """
-  The main class that receives GPS updates, fetches Waze alerts,
-  and adds an event if user is approaching a hazard. The event will
-  be handled by openpilot's UI. We rely on self.events to push a
-  custom event (EventName.wazeAlert).
-  """
+class WazeAlertManager:
   def __init__(self):
     self.current_lat = 0.0
     self.current_lon = 0.0
     self.bearing = 0.0
+    self.pm = None
     self.events = Events()
-    self.frame = 0
+    self.active_alert = None
+    self.alert_start_time = 0
 
-  def update(self):
-    """Call this periodically to process new GPS and check for approaching alerts."""
-    self.frame += 1
-    # Non-blocking attempt to get latest GPS data
-    while not gps_queue.empty():
-      gps_data = gps_queue.get_nowait()
-      self.current_lat = gps_data['latitude']
-      self.current_lon = gps_data['longitude']
-      self.bearing = gps_data['bearing']
+  def publish_waze_alert_message(self, alert_data=None):
+    """Publish wazeAlerts message to inform the system of Waze alerts."""
+    msg = messaging.new_message('wazeAlerts')
 
-    # Only do checks at about 1 Hz
-    if self.frame % 10 == 0:
-      self.check_alerts()
+    # Set position data
+    msg.wazeAlerts.position.latitude = self.current_lat
+    msg.wazeAlerts.position.longitude = self.current_lon
+    msg.wazeAlerts.bearing = self.bearing
+
+    if alert_data is not None and "alert" in alert_data:
+      alert = alert_data["alert"]
+      msg.wazeAlerts.alertsCount = 1
+      msg.wazeAlerts.showAlert = True
+      msg.wazeAlerts.alertText1 = alert["title"]
+      msg.wazeAlerts.alertText2 = alert["text"]
+      msg.wazeAlerts.alertType = alert["alert_type"]
+      msg.wazeAlerts.alertSound = alert["sound_id"]
+      msg.wazeAlerts.alertDistance = alert["distance"]
+    else:
+      msg.wazeAlerts.alertsCount = 0
+      msg.wazeAlerts.showAlert = False
+      msg.wazeAlerts.alertText1 = ""
+      msg.wazeAlerts.alertText2 = ""
+      msg.wazeAlerts.alertType = ""
+      msg.wazeAlerts.alertSound = 0
+      msg.wazeAlerts.alertDistance = 0
+
+    self.pm.send('wazeAlerts', msg)
+
+  def publish_onroad_event(self, event_name=None):
+    """Publish onroadEvents message to trigger the UI alert system."""
+    if event_name is not None:
+      self.events.add(event_name)
+
+    onroad_events = messaging.new_message('onroadEvents', len(self.events))
+    onroad_events.onroadEvents = self.events.to_msg()
+    self.pm.send('onroadEvents', onroad_events)
+
+    # Clear events after sending - we just want to trigger the alert once
+    self.events = Events()
 
   def check_alerts(self):
-    """
-    If we're approaching an alert we haven't alerted for, add the wazeAlert event.
-    The actual text/visual is defined in events.py / onroad UI code.
-    """
-    if abs(self.current_lat) < 0.0001 and abs(self.current_lon) < 0.0001:
+    """Check for approaching alerts and trigger UI notifications if found."""
+    global current_alert, alert_start_time
+
+    current_time = time.time()
+
+    # Skip if we don't have valid location data
+    if self.current_lat == 0.0 and self.current_lon == 0.0:
       return
 
+    # Clear expired alert
+    if self.active_alert and (current_time - self.alert_start_time > ALERT_DURATION):
+      logger.info("Alert expired, clearing")
+      self.active_alert = None
+      self.publish_waze_alert_message()  # Send empty alert data to clear UI
+
+    # Don't check for new alerts if we're already showing one
+    if self.active_alert:
+      return
+
+    # Check each alert in the cache
     for alert in alerts_cache:
       if 'location' not in alert or 'x' not in alert['location'] or 'y' not in alert['location']:
         continue
@@ -261,115 +287,118 @@ class WazedMonitor:
       alert_lon = alert['location']['x']
       alert_uuid = alert.get('uuid', '')
 
+      # Skip alerts with invalid coordinates
       if alert_lat == 0.0 and alert_lon == 0.0:
         continue
 
       try:
-        is_ahead, distance = is_approaching(
-          self.current_lat, self.current_lon, self.bearing, alert_lat, alert_lon
-        )
+        is_ahead, distance = is_approaching(self.current_lat, self.current_lon, self.bearing,
+                                           alert_lat, alert_lon)
+
+        # If we're approaching this alert and haven't alerted about it recently
         if is_ahead and alert_uuid not in last_alerted_uuids:
-          # We'll add the event, so the UI can display it
+          # Get alert text and sound ID
           title, text = get_alert_text(alert)
-          # Example of how you might define a custom event
-          # We'll rely on events.py to define exactly how it displays.
+          sound_id = get_waze_alert_sound(alert)
 
-          # Clear existing events to ensure no duplication
-          self.events.clear()
-          self.events.add(WAZE_EVENT_NAME)
+          # Create alert data
+          alert_data = {
+            "alert": {
+              "title": title,
+              "text": text,
+              "distance": distance,
+              "alert_type": alert.get('type', 'UNKNOWN'),
+              "sound_id": sound_id,
+              "uuid": alert_uuid
+            }
+          }
 
-          # Log it
-          logger.warning(f"Wazed: TRIGGER ALERT - {title}, Dist={distance:.1f}m, uuid={alert_uuid}")
-          cloudlog.warning(f"Wazed: TRIGGER ALERT - {title}, Dist={distance:.1f}m, uuid={alert_uuid}")
+          # Set current alert and start time
+          self.active_alert = alert_data
+          self.alert_start_time = current_time
 
-          # Mark as alerted so we don't spam the same alert
+          # Publish wazeAlerts message
+          self.publish_waze_alert_message(alert_data)
+
+          # Publish onroadEvents message to trigger UI alert
+          self.publish_onroad_event(EventName.wazeAlert)
+
+          # Add to alerted set to prevent repeat alerts
           last_alerted_uuids.add(alert_uuid)
-          if len(last_alerted_uuids) > 50:
+
+          # Print alert info
+          alert_message = f"{title} - {text}"
+          cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
+          logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
+
+          # Clean up old UUIDs occasionally (keep max 20)
+          if len(last_alerted_uuids) > 20:
             last_alerted_uuids.pop()
 
-          # The UI code in alerts.cc or QML can fetch the necessary data from CarState or custom structs
-          # For now, we just rely on the event alone (which must be configured)
+          # Only show one alert at a time
+          return
       except Exception as e:
-        logger.exception(f"Wazed: Error checking alert: {e}")
+        # Log any errors but don't crash
+        cloudlog.exception(f"Wazed: Error processing alert: {e}")
+        logger.exception(f"Error processing alert: {e}")
 
-
-def waze_fetch_thread():
-  """
-  A background thread that:
-
-  • Reads real or simulated GPS from messaging (or a queue).
-  • Periodically calls fetch_waze_alerts().
-  """
-  while True:
-    try:
-      # If we have some GPS data, fetch the alerts if the interval is up
-      if not gps_queue.empty():
-        gps_data = gps_queue.queue[-1]  # look at the most recent
-        lat = gps_data['latitude']
-        lon = gps_data['longitude']
-        fetch_waze_alerts(lat, lon)
-    except Exception as e:
-      logger.exception(f"Wazed: Error in fetch thread: {e}")
-    time.sleep(1.0)
-
-
-################################################################################
-# openpilot integration
-################################################################################
-
-def main():
-  """
-  Main entry point.
-  1) Start a background thread that fetches Waze alerts periodically.
-  2) Read GPS from openpilot's messaging or other source.
-  3) Initiate WazedMonitor to trigger events as needed.
-  4) Publish events so openpilot's UI can handle them.
-  """
-  logger.info("Wazed: Starting Waze extension with openpilot events")
-
-  # The real openpilot approach: read GPS from a SubMaster
+def wazed_thread(alert_manager):
+  """Background thread to fetch Waze alerts and check GPS data"""
   sm = messaging.SubMaster(['gpsLocationExternal'])
 
-  # Start the Waze fetch thread
-  t = threading.Thread(target=waze_fetch_thread, daemon=True)
-  t.start()
+  # For periodic GPS logging
+  last_gps_log_time = 0
+  GPS_LOG_INTERVAL = 60  # Log GPS position every minute
 
-  # Create monitor
-  monitor = WazedMonitor()
-
-  # Loop updating
   while True:
     sm.update()
 
     if sm.updated['gpsLocationExternal']:
       gps = sm['gpsLocationExternal']
-      lat = gps.latitude
-      lon = gps.longitude
-      bearing = gps.bearingDeg if gps.bearingDeg > 0.0 else 0.0
 
-      # push to queue for the monitor
-      gps_data = {
-        'latitude': lat,
-        'longitude': lon,
-        'bearing': bearing,
-        'timestamp': time.time()
-      }
-      gps_queue.put(gps_data)
+      # Get the car's position and bearing
+      alert_manager.current_lat = gps.latitude
+      alert_manager.current_lon = gps.longitude
+      alert_manager.bearing = gps.bearingDeg if gps.bearingDeg > 0.0 else 0.0  # Use GPS bearing when available
 
-    # Monitor checks alerts, triggers events
-    monitor.update()
+      # Log GPS position periodically
+      current_time = time.time()
+      if current_time - last_gps_log_time > GPS_LOG_INTERVAL:
+        cloudlog.info(f"Wazed: Current position: lat={alert_manager.current_lat:.6f}, lon={alert_manager.current_lon:.6f}, bearing={alert_manager.bearing:.1f}°")
+        logger.info(f"Current position: lat={alert_manager.current_lat:.6f}, lon={alert_manager.current_lon:.6f}, bearing={alert_manager.bearing:.1f}°")
+        last_gps_log_time = current_time
 
-    # If there's a wazeAlert event, do something with it (log, etc.)
-    # The actual UI display is handled in onroad code (C++ or QML).
-    # We'll show a quick example of how you might publish an event log:
-    if monitor.events.contains(WAZE_EVENT_NAME):
-      # For demonstration, just log it. Real use: add logic that onroad code can read.
-      logger.info("Wazed: wazeAlert event triggered!")
-      # The UI onroad code (alerts.cc or QML) must be updated to display this event.
-      # Clear it after reading or it stays active
-      monitor.events.clear()
+      # Only attempt to fetch Waze alerts every WAZE_API_UPDATE_INTERVAL
+      elapsed_since_last_call = current_time - last_api_call_time
+      if elapsed_since_last_call >= WAZE_API_UPDATE_INTERVAL and not api_is_busy:
+        # Fetch Waze alerts and update the global alerts_cache
+        fetch_waze_alerts(alert_manager.current_lat, alert_manager.current_lon)
 
-    time.sleep(0.1)
+    # Check for approaching alerts
+    alert_manager.check_alerts()
+
+    time.sleep(CHECK_ALERTS_INTERVAL)
+
+def main():
+  logger.info("Wazed: Starting Waze Alerts extension")
+
+  # Create WazeAlertManager
+  alert_manager = WazeAlertManager()
+
+  # Create a PubMaster for publishing messages
+  alert_manager.pm = messaging.PubMaster(['wazeAlerts', 'onroadEvents'])
+
+  # Initialize with empty alert
+  alert_manager.publish_waze_alert_message()
+  logger.info("Sent initial wazeAlerts message")
+
+  # Start the background thread for fetching alerts and GPS data
+  fetch_thread = threading.Thread(target=wazed_thread, args=(alert_manager,), daemon=True)
+  fetch_thread.start()
+
+  # Keep main thread alive
+  while True:
+    time.sleep(10)
 
 if __name__ == "__main__":
   main()
