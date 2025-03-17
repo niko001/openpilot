@@ -31,7 +31,13 @@ OnroadWindow::OnroadWindow(QWidget *parent) : QWidget(parent) {
   alerts->setAttribute(Qt::WA_TransparentForMouseEvents, true);
   stacked_layout->addWidget(alerts);
 
+  // Add Waze alert overlay
+  wazeAlerts = new WazeAlertOverlay(this);
+  wazeAlerts->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+  stacked_layout->addWidget(wazeAlerts);
+
   // setup stacking order
+  wazeAlerts->raise();
   alerts->raise();
 
   setAttribute(Qt::WA_OpaquePaintEvent);
@@ -45,6 +51,7 @@ void OnroadWindow::updateState(const UIState &s) {
   }
 
   alerts->updateState(s);
+  wazeAlerts->updateState(s);
   nvg->updateState(s);
 
   QColor bgColor = bg_colors[s.status];
