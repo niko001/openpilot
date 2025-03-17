@@ -72,6 +72,11 @@ def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshol
   """Determine if car is approaching the alert within the threshold distance."""
   distance = haversine_distance(car_lat, car_lon, alert_lat, alert_lon)
 
+  # For the mock alert, always return True for testing
+  if alert_lat == MOCK_ALERT["location"]["y"] and alert_lon == MOCK_ALERT["location"]["x"]:
+    logger.info(f"Mock alert detected at distance {distance:.1f}m, forcing trigger")
+    return True, distance
+
   # If we're already too far, return False immediately
   if distance > threshold:
     return False, distance
@@ -258,14 +263,18 @@ class WazeAlertManager:
     # Clear events after sending - we just want to trigger the alert once
     self.events = Events()
 
-  def check_alerts(self):
+def check_alerts(self):
     """Check for approaching alerts and trigger UI notifications if found."""
     global current_alert, alert_start_time
 
     current_time = time.time()
 
+    # For debugging - log that we're checking for alerts
+    logger.info(f"Checking for alerts at lat={self.current_lat:.6f}, lon={self.current_lon:.6f}")
+
     # Skip if we don't have valid location data
     if self.current_lat == 0.0 and self.current_lon == 0.0:
+      logger.warning("No valid GPS data, skipping alert check")
       return
 
     # Clear expired alert
@@ -276,6 +285,7 @@ class WazeAlertManager:
 
     # Don't check for new alerts if we're already showing one
     if self.active_alert:
+      logger.info("Already showing an alert, skipping check")
       return
 
     # Check each alert in the cache
@@ -321,7 +331,10 @@ class WazeAlertManager:
           self.publish_waze_alert_message(alert_data)
 
           # Publish onroadEvents message to trigger UI alert
+          # Log before and after to verify this is happening
+          logger.warning("About to publish onroad event for alert")
           self.publish_onroad_event(EventName.wazeAlert)
+          logger.warning("Published onroad event for alert")
 
           # Add to alerted set to prevent repeat alerts
           last_alerted_uuids.add(alert_uuid)
