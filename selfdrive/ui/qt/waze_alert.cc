@@ -94,46 +94,70 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
                   (float)animationStep / ANIMATION_STEPS :
                   1.0 - (float)animationStep / ANIMATION_STEPS;
 
-  // Get the color for this alert type
-  QColor color = alertColors.value(alertType, alertColors["UNKNOWN"]);
-  color.setAlpha(color.alpha() * opacity);
-
   // Calculate alert box dimensions and position
-  int width = this->width() * 0.8; // 80% of screen width
-  int height = this->height() * 0.25; // 25% of screen height
-  int x = (this->width() - width) / 2;
-  int y = ALERT_MARGIN;
+  // This matches the AlertSize::MID in alerts.cc
+  int margin = 40;
+  int radius = 30;
 
-  // Draw background
-  QPainterPath path;
-  path.addRoundedRect(x, y, width, height, ALERT_RADIUS, ALERT_RADIUS);
-  p.fillPath(path, color);
+  // Fixed height for our alert - smaller than full alerts
+  int height = this->height() * 0.2; // 20% of screen height
 
-  // Add a border
-  QPen pen(Qt::white, 2);
-  pen.setColor(QColor(255, 255, 255, 200 * opacity));
-  p.setPen(pen);
-  p.drawRoundedRect(x, y, width, height, ALERT_RADIUS, ALERT_RADIUS);
+  // Calculate position at the bottom of the screen with margin
+  int width = this->width() - margin * 2;
+  int x = margin;
+  int y = this->height() - height - margin;
+
+  QRect r = QRect(x, y, width, height);
+
+  // Draw background (dark gray with transparency matching existing alerts)
+  p.setPen(Qt::NoPen);
+  p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+  QColor bgColor(0x15, 0x15, 0x15, 0xf1 * opacity);
+
+  // For certain alert types, use special colors (but more subtle than before)
+  if (alertType == "POLICE") {
+    bgColor = QColor(0x00, 0x00, 0x80, 0xf1 * opacity); // Dark blue
+  } else if (alertType == "ACCIDENT") {
+    bgColor = QColor(0x80, 0x00, 0x00, 0xf1 * opacity); // Dark red
+  } else if (alertType == "HAZARD") {
+    bgColor = QColor(0x80, 0x40, 0x00, 0xf1 * opacity); // Dark orange
+  }
+
+  p.setBrush(QBrush(bgColor));
+  p.drawRoundedRect(r, radius, radius);
+
+  // Add a subtle gradient like in alerts.cc
+  QLinearGradient g(0, r.y(), 0, r.bottom());
+  g.setColorAt(0, QColor::fromRgbF(0, 0, 0, 0.05));
+  g.setColorAt(1, QColor::fromRgbF(0, 0, 0, 0.35));
+
+  p.setCompositionMode(QPainter::CompositionMode_DestinationOver);
+  p.setBrush(QBrush(g));
+  p.drawRoundedRect(r, radius, radius);
+  p.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
   // Draw the title
-  QFont titleFont("Inter", TITLE_FONT_SIZE, QFont::Bold);
+  p.setPen(QColor(0xff, 0xff, 0xff, 0xff * opacity));
+  p.setRenderHint(QPainter::TextAntialiasing);
+
+  // Use the same font as alerts.cc - InterFont is a custom function, using QFont directly
+  QFont titleFont("Inter", 88, QFont::Bold);
   p.setFont(titleFont);
-  p.setPen(QPen(QColor(255, 255, 255, 255 * opacity)));
-  QRect titleRect(x + 20, y + 20, width - 40, TITLE_FONT_SIZE + 10);
-  p.drawText(titleRect, Qt::AlignLeft | Qt::AlignTop, alertTitle);
 
-  // Draw the text
-  QFont textFont("Inter", TEXT_FONT_SIZE);
+  // Title centered at top
+  QRect titleRect(x, y + 20, width, 100);
+  p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignTop, alertTitle);
+
+  // Text below title
+  QFont textFont("Inter", 66);
   p.setFont(textFont);
-  QRect textRect(x + 20, y + TITLE_FONT_SIZE + 30, width - 40, height - TITLE_FONT_SIZE - 40);
-  p.drawText(textRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, alertText);
 
-  // Draw the distance
+  // Add distance to the description text
+  QString displayText = alertText;
   if (alertDistance > 0) {
-    QFont distanceFont("Inter", DISTANCE_FONT_SIZE);
-    p.setFont(distanceFont);
-    QString distanceText = QString("%1 m").arg(qRound(alertDistance));
-    QRect distanceRect(x + 20, y + height - DISTANCE_FONT_SIZE - 20, width - 40, DISTANCE_FONT_SIZE + 10);
-    p.drawText(distanceRect, Qt::AlignRight | Qt::AlignBottom, distanceText);
+    displayText += QString("\n%1 m").arg(qRound(alertDistance));
   }
+
+  QRect textRect(x, y + 100, width, height - 120);
+  p.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, displayText);
 }
