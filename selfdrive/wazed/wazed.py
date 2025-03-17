@@ -13,6 +13,15 @@ from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.selfdrived.events import Alert, AlertStatus, AlertSize, Priority, VisualAlert, AudibleAlert, EventName, Events
 
+# Define custom Waze audible alert IDs (matching soundd.py sound_list)
+WAZE_ALERT_HAZARD = 10
+WAZE_ALERT_JAM = 11
+WAZE_ALERT_ACCIDENT = 12
+WAZE_ALERT_POLICE = 13
+WAZE_ALERT_ROAD_CLOSED = 14
+WAZE_ALERT_SPEED_CAMERA = 15
+WAZE_ALERT_REDLIGHT_CAMERA = 16
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("wazed")
@@ -293,12 +302,30 @@ class WazedMonitor:
     """Create a custom Alert object for a specific Waze alert."""
     title, text = get_alert_text(alert_data)
     alert_type = alert_data.get("type", "UNKNOWN")
+    subtype = alert_data.get("subtype", "")
 
     # Set alert parameters based on type
-    if alert_type in ["ACCIDENT", "POLICE", "HAZARD"]:
-      # Higher priority for accidents and hazards
+    if alert_type == "ACCIDENT":
       priority = Priority.MID
-      audible = AudibleAlert.prompt
+      audible = WAZE_ALERT_ACCIDENT
+    elif alert_type == "POLICE":
+      priority = Priority.MID
+      audible = WAZE_ALERT_POLICE
+    elif alert_type == "HAZARD":
+      priority = Priority.MID
+      audible = WAZE_ALERT_HAZARD
+    elif alert_type == "JAM":
+      priority = Priority.MID
+      audible = WAZE_ALERT_JAM
+    elif alert_type == "ROAD_CLOSED":
+      priority = Priority.MID
+      audible = WAZE_ALERT_ROAD_CLOSED
+    elif subtype == "SPEED_CAMERA":
+      priority = Priority.MID
+      audible = WAZE_ALERT_SPEED_CAMERA
+    elif subtype == "REDLIGHT_CAMERA":
+      priority = Priority.MID
+      audible = WAZE_ALERT_REDLIGHT_CAMERA
     else:
       priority = Priority.LOW
       audible = AudibleAlert.none

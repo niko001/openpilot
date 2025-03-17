@@ -38,6 +38,15 @@ sound_list: dict[int, tuple[str, int | None, float]] = {
 
   AudibleAlert.warningSoft: ("warning_soft.wav", None, MAX_VOLUME),
   AudibleAlert.warningImmediate: ("warning_immediate.wav", None, MAX_VOLUME),
+
+  # Waze alert sounds
+  10: ("waze_alert_hazard.wav", 1, MAX_VOLUME),       # Custom Waze hazard alert
+  11: ("waze_alert_jam.wav", 1, MAX_VOLUME),          # Custom Waze traffic jam alert
+  12: ("waze_alert_accident.wav", 1, MAX_VOLUME),     # Custom Waze accident alert
+  13: ("waze_alert_police.wav", 1, MAX_VOLUME),       # Custom Waze police alert
+  14: ("waze_alert_road_closed.wav", 1, MAX_VOLUME),  # Custom Waze road closed alert
+  15: ("waze_alert_speed_camera.wav", 1, MAX_VOLUME), # Custom Waze speed camera alert
+  16: ("waze_alert_redlight_camera.wav", 1, MAX_VOLUME), # Custom Waze redlight camera alert
 }
 
 def check_selfdrive_timeout_alert(sm):
