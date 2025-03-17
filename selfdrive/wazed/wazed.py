@@ -285,18 +285,19 @@ class WazedMonitor:
     # Check for new alerts periodically
     if current_time - self.last_fetch_time >= self.fetch_interval:
       print(f"\nTime to fetch alerts (last fetch was {current_time - self.last_fetch_time:.1f}s ago)")
-      self.check_alerts()  # This now directly sends alerts without using events
+
+      # Only check for new alerts if we're not currently showing one
+      # or if the current alert has been showing for at least 5 seconds
+      if not self.showing_alert or (current_time - self.alert_start_time > 5.0):
+        self.check_alerts()  # This directly sends alerts without using events
+
       self.last_fetch_time = current_time
 
-    # Handle alert timing - if alert has been showing for too long, clear it
+    # Update the alert showing status (for bookkeeping only - we let the system handle alert display timing)
     if self.showing_alert and (current_time - self.alert_start_time > self.alert_duration):
       self.showing_alert = False
       self.active_alert = None
-      # Send empty alert to clear display
-      dat = messaging.new_message('selfdriveState')
-      dat.selfdriveState.enabled = True
-      self.pm.send('selfdriveState', dat)
-      print("Alert cleared after timeout")
+      print("Alert marked as expired (system will handle dismissal)")
 
   def create_custom_waze_alert(self, alert_data):
     """Create a custom Alert object for a specific Waze alert."""
