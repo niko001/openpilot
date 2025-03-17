@@ -26,11 +26,11 @@ OnroadAlerts::Alert OnroadAlerts::getAlert(const SubMaster &sm, uint64_t started
 
   // Check for Waze alerts first
   if (sm.updated("wazeAlerts")) {
-    const auto &waze_alerts = sm["wazeAlerts"].getWazeAlerts();
-    if (waze_alerts.getShowAlert()) {
+    const auto &waze_alerts = sm["wazeAlerts"];
+    if (waze_alerts.showAlert) {
       // Waze alert is active
-      a = {waze_alerts.getAlertText1().cStr(), waze_alerts.getAlertText2().cStr(),
-           QString("wazeAlert/") + waze_alerts.getAlertType().cStr(),
+      a = {waze_alerts.alertText1.cStr(), waze_alerts.alertText2.cStr(),
+           QString("wazeAlert/") + waze_alerts.alertType.cStr(),
            cereal::SelfdriveState::AlertSize::MID,
            cereal::SelfdriveState::AlertStatus::NORMAL};
       return a;  // Return waze alert immediately

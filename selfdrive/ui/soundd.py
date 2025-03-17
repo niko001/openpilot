@@ -60,9 +60,9 @@ def check_selfdrive_timeout_alert(sm):
 
 def check_waze_alert(sm):
   if sm.updated["wazeAlerts"]:
-    waze_alerts = sm["wazeAlerts"].getWazeAlerts()
-    if waze_alerts.getShowAlert() and waze_alerts.getAlertSound() > 0:
-      return waze_alerts.getAlertSound()
+    waze_alerts = sm["wazeAlerts"]
+    if waze_alerts.showAlert and waze_alerts.alertSound > 0:
+      return waze_alerts.alertSound
   return None
 
 
