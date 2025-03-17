@@ -23,6 +23,21 @@ OnroadAlerts::Alert OnroadAlerts::getAlert(const SubMaster &sm, uint64_t started
   const uint64_t selfdrive_frame = sm.rcv_frame("selfdriveState");
 
   Alert a = {};
+
+  // Check for Waze alerts first
+  if (sm.updated("wazeAlerts")) {
+    const auto &waze_alerts = sm["wazeAlerts"].getWazeAlerts();
+    if (waze_alerts.getShowAlert()) {
+      // Waze alert is active
+      a = {waze_alerts.getAlertText1().cStr(), waze_alerts.getAlertText2().cStr(),
+           QString("wazeAlert/") + waze_alerts.getAlertType().cStr(),
+           cereal::SelfdriveState::AlertSize::MID,
+           cereal::SelfdriveState::AlertStatus::NORMAL};
+      return a;  // Return waze alert immediately
+    }
+  }
+
+  // If no Waze alert, check regular selfdriveState alerts
   if (selfdrive_frame >= started_frame) {  // Don't get old alert.
     a = {ss.getAlertText1().cStr(), ss.getAlertText2().cStr(),
          ss.getAlertType().cStr(), ss.getAlertSize(), ss.getAlertStatus()};

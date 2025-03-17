@@ -314,43 +314,28 @@ class WazedMonitor:
       self.active_alert = None
       print("Alert marked as expired and cleared")
 
-  def create_custom_waze_alert(self, alert_data):
-    """Create a custom Alert object for a specific Waze alert."""
-    title, text = get_alert_text(alert_data)
+  def get_waze_alert_sound(self, alert_data):
+    """Get the alert sound ID based on alert type."""
     alert_type = alert_data.get("type", "UNKNOWN")
     subtype = alert_data.get("subtype", "")
 
-    # Set alert parameters based on type
+    # Map alert types to sound IDs
     if alert_type == "ACCIDENT":
-      priority = Priority.MID
-      audible = WAZE_ALERT_ACCIDENT
+      return WAZE_ALERT_ACCIDENT
     elif alert_type == "POLICE":
-      priority = Priority.MID
-      audible = WAZE_ALERT_POLICE
+      return WAZE_ALERT_POLICE
     elif alert_type == "HAZARD":
-      priority = Priority.MID
-      audible = WAZE_ALERT_HAZARD
+      return WAZE_ALERT_HAZARD
     elif alert_type == "JAM":
-      priority = Priority.MID
-      audible = WAZE_ALERT_JAM
+      return WAZE_ALERT_JAM
     elif alert_type == "ROAD_CLOSED":
-      priority = Priority.MID
-      audible = WAZE_ALERT_ROAD_CLOSED
+      return WAZE_ALERT_ROAD_CLOSED
     elif subtype == "SPEED_CAMERA":
-      priority = Priority.MID
-      audible = WAZE_ALERT_SPEED_CAMERA
+      return WAZE_ALERT_SPEED_CAMERA
     elif subtype == "REDLIGHT_CAMERA":
-      priority = Priority.MID
-      audible = WAZE_ALERT_REDLIGHT_CAMERA
+      return WAZE_ALERT_REDLIGHT_CAMERA
     else:
-      priority = Priority.LOW
-      audible = AudibleAlert.none
-
-    return Alert(
-      title, text,
-      AlertStatus.normal, AlertSize.mid,
-      priority, VisualAlert.none, audible, 5.0
-    )
+      return 0  # No sound
 
   def check_alerts(self):
     """Check each alert in the cache and add events if needed."""
@@ -377,8 +362,9 @@ class WazedMonitor:
 
         # If we're approaching this alert and haven't alerted about it recently
         if is_ahead and alert_uuid not in last_alerted_uuids:
-          # Create our custom alert object to determine sound and text
-          custom_alert = self.create_custom_waze_alert(alert)
+          # Get alert text and sound ID
+          title, text = get_alert_text(alert)
+          sound_id = self.get_waze_alert_sound(alert)
 
           # Create wazeAlerts message with the alert information
           alert_msg = messaging.new_message('wazeAlerts')
@@ -389,10 +375,10 @@ class WazedMonitor:
 
           # Set the alert display information
           alert_msg.wazeAlerts.showAlert = True
-          alert_msg.wazeAlerts.alertText1 = custom_alert.alert_text_1
-          alert_msg.wazeAlerts.alertText2 = custom_alert.alert_text_2
+          alert_msg.wazeAlerts.alertText1 = title
+          alert_msg.wazeAlerts.alertText2 = text
           alert_msg.wazeAlerts.alertType = alert.get('type', 'UNKNOWN')
-          alert_msg.wazeAlerts.alertSound = custom_alert.audible_alert
+          alert_msg.wazeAlerts.alertSound = sound_id
           alert_msg.wazeAlerts.alertDistance = distance
 
           # Send the message immediately
@@ -401,13 +387,13 @@ class WazedMonitor:
           # Mark that we're showing an alert and record the time
           self.showing_alert = True
           self.alert_start_time = time.time()
-          self.active_alert = custom_alert
+          self.active_alert = {"title": title, "text": text, "type": alert.get('type', 'UNKNOWN')}
 
           # Add to alerted set to prevent repeat alerts
           last_alerted_uuids.add(alert_uuid)
 
           # Print alert info
-          alert_message = f"{custom_alert.alert_text_1} - {custom_alert.alert_text_2}"
+          alert_message = f"{title} - {text}"
           cloudlog.warning(f"Wazed: ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
           logger.warning(f"ALERT TRIGGERED: {alert_message} - Distance: {distance:.1f}m - Type: {alert.get('type', 'UNKNOWN')}")
           print(f"WAZE ALERT: {alert_message}")

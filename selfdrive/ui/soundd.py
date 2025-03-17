@@ -58,6 +58,13 @@ def check_selfdrive_timeout_alert(sm):
 
   return False
 
+def check_waze_alert(sm):
+  if sm.updated["wazeAlerts"]:
+    waze_alerts = sm["wazeAlerts"].getWazeAlerts()
+    if waze_alerts.getShowAlert() and waze_alerts.getAlertSound() > 0:
+      return waze_alerts.getAlertSound()
+  return None
+
 
 class Soundd:
   def __init__(self):
@@ -119,7 +126,12 @@ class Soundd:
       self.current_sound_frame = 0
 
   def get_audible_alert(self, sm):
-    if sm.updated['selfdriveState']:
+    # Check for Waze alerts first
+    waze_alert_sound = check_waze_alert(sm)
+    if waze_alert_sound is not None:
+      self.update_alert(waze_alert_sound)
+    # Then check regular selfdrive alerts
+    elif sm.updated['selfdriveState']:
       new_alert = sm['selfdriveState'].alertSound.raw
       self.update_alert(new_alert)
     elif check_selfdrive_timeout_alert(sm):
@@ -144,7 +156,7 @@ class Soundd:
     # sounddevice must be imported after forking processes
     import sounddevice as sd
 
-    sm = messaging.SubMaster(['selfdriveState', 'microphone'])
+    sm = messaging.SubMaster(['selfdriveState', 'microphone', 'wazeAlerts'])
 
     with self.get_stream(sd) as stream:
       rk = Ratekeeper(20)
