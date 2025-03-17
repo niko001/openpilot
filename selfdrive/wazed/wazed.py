@@ -383,11 +383,36 @@ class WazedMonitor:
         cloudlog.exception(f"Wazed: Error processing alert: {e}")
         logger.exception(f"Error processing alert: {e}")
 
+def generate_initial_alert_message(lat=0.0, lon=0.0, bearing=0.0):
+  """Generate an initial alert message with empty fields to set default values."""
+  alert_msg = messaging.new_message('wazeAlerts')
+
+  # Set position data
+  alert_msg.wazeAlerts.position.latitude = lat
+  alert_msg.wazeAlerts.position.longitude = lon
+  alert_msg.wazeAlerts.bearing = bearing
+  alert_msg.wazeAlerts.alertsCount = 0
+
+  # Initialize alert fields with default values
+  alert_msg.wazeAlerts.showAlert = False
+  alert_msg.wazeAlerts.alertText1 = ""
+  alert_msg.wazeAlerts.alertText2 = ""
+  alert_msg.wazeAlerts.alertType = ""
+  alert_msg.wazeAlerts.alertSound = 0
+  alert_msg.wazeAlerts.alertDistance = 0.0
+
+  return alert_msg
+
 def main():
   logger.info("Wazed: Starting Waze Alerts extension")
 
   # Create a single PubMaster instance - THIS IS THE ONLY PUBLISHER
   pm = messaging.PubMaster(['wazeAlerts'])
+
+  # Initialize the WazeAlerts message
+  initial_msg = generate_initial_alert_message()
+  pm.send('wazeAlerts', initial_msg)
+  logger.info("Sent initial wazeAlerts message")
 
   # Start the background thread for fetching alerts and GPS data
   fetch_thread = threading.Thread(target=wazed_fetch_thread, daemon=True)
@@ -472,8 +497,13 @@ def main():
         logger.info("Sent clear alert message")
 
     except queue.Empty:
-      # No new alerts to process
-      pass
+      # Periodically send position updates even without alerts
+      position_msg = generate_initial_alert_message(
+        monitor.current_lat,
+        monitor.current_lon,
+        monitor.bearing
+      )
+      pm.send('wazeAlerts', position_msg)
 
     time.sleep(0.1)  # Run at 10Hz
 

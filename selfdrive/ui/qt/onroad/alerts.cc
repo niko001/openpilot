@@ -26,9 +26,8 @@ OnroadAlerts::Alert OnroadAlerts::getAlert(const SubMaster &sm, uint64_t started
 
   // Check for Waze alerts first
   if (sm.updated("wazeAlerts")) {
-    const auto &event = sm["wazeAlerts"];
-    if (event.which() == cereal::Event::WAZE_ALERTS) {
-      const auto &waze = event.getWazeAlerts();
+    try {
+      const auto &waze = sm["wazeAlerts"];
       if (waze.getShowAlert()) {
         // Waze alert is active
         a = {waze.getAlertText1().cStr(), waze.getAlertText2().cStr(),
@@ -37,6 +36,8 @@ OnroadAlerts::Alert OnroadAlerts::getAlert(const SubMaster &sm, uint64_t started
              cereal::SelfdriveState::AlertStatus::NORMAL};
         return a;  // Return waze alert immediately
       }
+    } catch (const std::exception &e) {
+      qDebug() << "Error accessing wazeAlerts:" << e.what();
     }
   }
 
