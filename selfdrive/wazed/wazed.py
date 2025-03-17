@@ -5,6 +5,7 @@ import time
 import threading
 import requests
 import logging
+import queue
 from datetime import datetime, timedelta
 
 import cereal.messaging as messaging
@@ -180,8 +181,11 @@ def get_alert_text(alert):
 
   return title, text
 
-def wazed_thread(pm):
-  """Background thread to fetch Waze alerts."""
+# Thread-safe queue for GPS updates
+gps_queue = queue.Queue()
+
+def wazed_fetch_thread():
+  """Background thread to fetch Waze alerts without sending messages."""
   global alerts_cache
 
   sm = messaging.SubMaster(['gpsLocationExternal'])
@@ -213,42 +217,19 @@ def wazed_thread(pm):
         logger.info(f"Current position: lat={current_lat:.6f}, lon={current_lon:.6f}, bearing={current_bearing:.1f}°")
         last_gps_log_time = current_time
 
+      # Put GPS data in the queue for the monitor to use
+      gps_queue.put({
+        'latitude': current_lat,
+        'longitude': current_lon,
+        'bearing': current_bearing,
+        'timestamp': current_time
+      })
+
       # Only attempt to fetch Waze alerts every WAZE_API_UPDATE_INTERVAL
       elapsed_since_last_call = current_time - last_api_call_time
       if elapsed_since_last_call >= WAZE_API_UPDATE_INTERVAL and not api_is_busy:
-        # Fetch Waze alerts
-        waze_alerts = fetch_waze_alerts(current_lat, current_lon)
-      else:
-        waze_alerts = alerts_cache
-      if waze_alerts:
-        # Send the alerts to our subscribers
-        waze_alert_msg = messaging.new_message('wazeAlerts')
-        waze_alert_msg.wazeAlerts.position.latitude = current_lat
-        waze_alert_msg.wazeAlerts.position.longitude = current_lon
-        waze_alert_msg.wazeAlerts.bearing = current_bearing
-
-        alerts_to_check = []
-        for alert in waze_alerts:
-          if 'location' in alert and 'x' in alert['location'] and 'y' in alert['location']:
-            alert_lat = alert['location']['y']
-            alert_lon = alert['location']['x']
-            is_ahead, distance = is_approaching(current_lat, current_lon, current_bearing, alert_lat, alert_lon)
-
-            if is_ahead:
-              alert_data = {
-                'uuid': alert.get('uuid', ''),
-                'type': alert.get('type', 'UNKNOWN'),
-                'latitude': alert_lat,
-                'longitude': alert_lon,
-                'distance': distance,
-                'street': alert.get('street', ''),
-                'description': alert.get('reportDescription', ''),
-                'subtype': alert.get('subtype', '')
-              }
-              alerts_to_check.append(alert_data)
-
-        waze_alert_msg.wazeAlerts.alertsCount = len(alerts_to_check)
-        pm.send('wazeAlerts', waze_alert_msg)
+        # Fetch Waze alerts and update the global alerts_cache
+        fetch_waze_alerts(current_lat, current_lon)
 
     time.sleep(CHECK_ALERTS_INTERVAL)
 
@@ -411,18 +392,41 @@ class WazedMonitor:
 def main():
   logger.info("Wazed: Starting Waze Alerts extension")
 
-  # Create a single PubMaster instance for both threads
+  # Create a single PubMaster instance
   pm = messaging.PubMaster(['wazeAlerts'])
 
-  # Start the background thread for fetching alerts
-  wazed_fetch_thread = threading.Thread(target=wazed_thread, args=(pm,), daemon=True)
-  wazed_fetch_thread.start()
+  # Start the background thread for fetching alerts and GPS data
+  fetch_thread = threading.Thread(target=wazed_fetch_thread, daemon=True)
+  fetch_thread.start()
 
   # Start the monitor in the main thread
   monitor = WazedMonitor()
   monitor.pm = pm  # Use the same PubMaster instance
 
+  # Set initial position data
+  try:
+    # Get initial GPS data from queue with timeout
+    gps_data = gps_queue.get(timeout=10)
+    monitor.current_lat = gps_data['latitude']
+    monitor.current_lon = gps_data['longitude']
+    monitor.bearing = gps_data['bearing']
+    logger.info(f"Initial position: lat={monitor.current_lat:.6f}, lon={monitor.current_lon:.6f}, bearing={monitor.bearing:.1f}°")
+  except queue.Empty:
+    logger.warning("No initial GPS data received, starting with default position")
+
   while True:
+    # Check for new GPS data
+    try:
+      # Non-blocking check for GPS updates
+      gps_data = gps_queue.get(block=False)
+      monitor.current_lat = gps_data['latitude']
+      monitor.current_lon = gps_data['longitude']
+      monitor.bearing = gps_data['bearing']
+    except queue.Empty:
+      # No new GPS data, continue with existing position
+      pass
+
+    # Update the monitor
     monitor.update()
     time.sleep(0.1)  # Run at 10Hz
 
