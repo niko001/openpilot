@@ -180,11 +180,10 @@ def get_alert_text(alert):
 
   return title, text
 
-def wazed_thread():
+def wazed_thread(pm):
   """Background thread to fetch Waze alerts."""
   global alerts_cache
 
-  pm = messaging.PubMaster(['wazeAlerts'])
   sm = messaging.SubMaster(['gpsLocationExternal'])
 
   # For tracking position changes
@@ -412,12 +411,17 @@ class WazedMonitor:
 def main():
   logger.info("Wazed: Starting Waze Alerts extension")
 
+  # Create a single PubMaster instance for both threads
+  pm = messaging.PubMaster(['wazeAlerts'])
+
   # Start the background thread for fetching alerts
-  wazed_fetch_thread = threading.Thread(target=wazed_thread, daemon=True)
+  wazed_fetch_thread = threading.Thread(target=wazed_thread, args=(pm,), daemon=True)
   wazed_fetch_thread.start()
 
   # Start the monitor in the main thread
   monitor = WazedMonitor()
+  monitor.pm = pm  # Use the same PubMaster instance
+
   while True:
     monitor.update()
     time.sleep(0.1)  # Run at 10Hz
