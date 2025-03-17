@@ -263,7 +263,7 @@ class WazeAlertManager:
     # Clear events after sending - we just want to trigger the alert once
     self.events = Events()
 
-def check_alerts(self):
+  def check_alerts(self):
     """Check for approaching alerts and trigger UI notifications if found."""
     global current_alert, alert_start_time
 
