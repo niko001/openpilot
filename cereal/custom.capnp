@@ -19,6 +19,14 @@ struct WazeAlerts @0x81c2f05a394cf4af {
   position @0 :Position;  # Current vehicle position
   bearing @1 :Float32;    # Current vehicle bearing (degrees)
   alertsCount @2 :UInt16; # Number of nearby alerts
+
+  # Waze alert display data
+  showAlert @3 :Bool;     # Whether to show an alert on the UI
+  alertText1 @4 :Text;    # Primary alert text (e.g., "Police Ahead")
+  alertText2 @5 :Text;    # Secondary alert text (e.g., "On I-5 South")
+  alertType @6 :Text;     # Type of alert (e.g., "POLICE", "ACCIDENT")
+  alertSound @7 :Int32;   # Sound ID to play
+  alertDistance @8 :Float32;  # Distance to the alert in meters
 }
 
 struct CustomReserved1 @0xaedffd8f31e7b55d {

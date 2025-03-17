@@ -256,7 +256,7 @@ def wazed_thread():
 class WazedMonitor:
   def __init__(self):
     self.sm = messaging.SubMaster(['wazeAlerts'])
-    self.pm = messaging.PubMaster(['selfdriveState'])  # Changed to selfdriveState
+    self.pm = messaging.PubMaster(['wazeAlerts'])  # Use wazeAlerts publisher
     self.events = Events()
     self.frame = 0
     self.current_lat = 0.0
@@ -293,11 +293,26 @@ class WazedMonitor:
 
       self.last_fetch_time = current_time
 
-    # Update the alert showing status (for bookkeeping only - we let the system handle alert display timing)
+    # If we have an active alert that has been showing for too long, clear it
     if self.showing_alert and (current_time - self.alert_start_time > self.alert_duration):
+      # Send a message to clear the alert
+      alert_msg = messaging.new_message('wazeAlerts')
+      alert_msg.wazeAlerts.position.latitude = self.current_lat
+      alert_msg.wazeAlerts.position.longitude = self.current_lon
+      alert_msg.wazeAlerts.bearing = self.bearing
+      alert_msg.wazeAlerts.alertsCount = 0
+      # Clear alert display
+      alert_msg.wazeAlerts.showAlert = False
+      alert_msg.wazeAlerts.alertText1 = ""
+      alert_msg.wazeAlerts.alertText2 = ""
+      alert_msg.wazeAlerts.alertType = ""
+      alert_msg.wazeAlerts.alertSound = 0
+      self.pm.send('wazeAlerts', alert_msg)
+
+      # Update our internal state
       self.showing_alert = False
       self.active_alert = None
-      print("Alert marked as expired (system will handle dismissal)")
+      print("Alert marked as expired and cleared")
 
   def create_custom_waze_alert(self, alert_data):
     """Create a custom Alert object for a specific Waze alert."""
@@ -362,23 +377,26 @@ class WazedMonitor:
 
         # If we're approaching this alert and haven't alerted about it recently
         if is_ahead and alert_uuid not in last_alerted_uuids:
-          # Don't use Events system directly, create our own custom alert
+          # Create our custom alert object to determine sound and text
           custom_alert = self.create_custom_waze_alert(alert)
 
-          # Create selfdriveState message directly
-          dat = messaging.new_message('selfdriveState')
-          dat.selfdriveState.enabled = True
+          # Create wazeAlerts message with the alert information
+          alert_msg = messaging.new_message('wazeAlerts')
+          alert_msg.wazeAlerts.position.latitude = self.current_lat
+          alert_msg.wazeAlerts.position.longitude = self.current_lon
+          alert_msg.wazeAlerts.bearing = self.bearing
+          alert_msg.wazeAlerts.alertsCount = 1
 
-          # Set alert fields with our custom alert
-          dat.selfdriveState.alertText1 = custom_alert.alert_text_1
-          dat.selfdriveState.alertText2 = custom_alert.alert_text_2  # This should now be visible
-          dat.selfdriveState.alertSize = custom_alert.alert_size
-          dat.selfdriveState.alertStatus = custom_alert.alert_status
-          dat.selfdriveState.alertType = f"wazeAlert/{alert.get('type', 'UNKNOWN')}"  # Custom alert type
-          dat.selfdriveState.alertSound = custom_alert.audible_alert
+          # Set the alert display information
+          alert_msg.wazeAlerts.showAlert = True
+          alert_msg.wazeAlerts.alertText1 = custom_alert.alert_text_1
+          alert_msg.wazeAlerts.alertText2 = custom_alert.alert_text_2
+          alert_msg.wazeAlerts.alertType = alert.get('type', 'UNKNOWN')
+          alert_msg.wazeAlerts.alertSound = custom_alert.audible_alert
+          alert_msg.wazeAlerts.alertDistance = distance
 
           # Send the message immediately
-          self.pm.send('selfdriveState', dat)
+          self.pm.send('wazeAlerts', alert_msg)
 
           # Mark that we're showing an alert and record the time
           self.showing_alert = True
