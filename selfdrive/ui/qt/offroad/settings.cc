@@ -143,7 +143,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   // Alert distance selector
   std::vector<QString> distance_options{"100m", "200m", "300m", "400m", "500m"};
   std::vector<QString> distance_values{"100", "200", "300", "400", "500"};
-  int default_distance_idx = 1; // 200m is default (index 1)
+  //int default_distance_idx = 1; // 200m is default (index 1)
 
   auto distance_btn = new ButtonParamControl("WazeAlertsDistance",
                                            tr("Alert Distance"),
