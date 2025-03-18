@@ -147,18 +147,18 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   QPixmap distanceIcon("../assets/offroad/icon_road.png");
   QLabel *iconLabel = new QLabel();
   iconLabel->setPixmap(distanceIcon.scaledToWidth(80, Qt::SmoothTransformation));
-  iconLabel->setStyleSheet("margin-left: 5px;");
+  iconLabel->setStyleSheet("margin-left: 0px;");
   distanceLayout->addWidget(iconLabel);
 
   // Add distance label
   QLabel *distanceLabel = new QLabel(tr("Alert Distance"));
-  distanceLabel->setStyleSheet("font-size: 50px; font-weight: 500; margin-left: 10px;");
+  distanceLabel->setStyleSheet("font-size: 50px; font-weight: 300; margin-left: 10px;");
   distanceLayout->addWidget(distanceLabel);
 
   distanceLayout->addStretch();
 
-  // Use fixed distances: 100m, 200m, 300m, 400m, 500m
-  std::vector<int> distance_values{100, 200, 300, 400, 500};
+  // Use fixed distances: 100m, 200m, 300m, 400m, 500m, 600m
+  std::vector<int> distance_values{100, 200, 300, 400, 500, 600};
 
   // Initialize the parameter if needed
   Params p;
