@@ -140,27 +140,130 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
     toggle->setEnabled(params.getBool("WazeAlertsEnabled"));
   }
 
-  // Initialize WazeAlertsDistance to 200m if needed
+  // Create a widget for distance selector with buttons
+  QHBoxLayout *distanceLayout = new QHBoxLayout();
+  QLabel *distanceLabel = new QLabel(tr("Alert Distance"));
+  distanceLabel->setStyleSheet("font-size: 50px; font-weight: 500; margin-left: 15px;");
+  distanceLayout->addWidget(distanceLabel);
+
+  distanceLayout->addStretch();
+
+  // Use fixed distances: 100m, 200m, 300m, 400m, 500m
+  std::vector<int> distance_values{100, 200, 300, 400, 500};
+  int default_distance_idx = 1; // 200m is default (index 1)
+
+  // Initialize the parameter if needed
   Params p;
   if (p.get("WazeAlertsDistance").empty()) {
     p.put("WazeAlertsDistance", "200");
   }
 
-  // Simple label for alert distance instead of complex control
-  QString distance_text = "200m";
+  // Get current value
+  int current_distance = 200;
   try {
     std::string dist_str = p.get("WazeAlertsDistance");
     if (!dist_str.empty()) {
-      int dist = std::stoi(dist_str);
-      distance_text = QString("%1m").arg(dist);
+      current_distance = std::stoi(dist_str);
     }
   } catch (...) {
-    // Keep default if there's an error
+    current_distance = 200;
   }
 
-  auto distance_label = new LabelControl(tr("Alert Distance"), distance_text,
-                                         tr("Distance at which alerts will be announced (set to 200m by default)."));
-  addItem(distance_label);
+  // Display current value
+  QLabel *valueLabel = new QLabel(QString("%1m").arg(current_distance));
+  valueLabel->setStyleSheet("font-size: 50px; margin-right: 20px;");
+
+  // Decrease button
+  QPushButton *decreaseBtn = new QPushButton("-");
+  decreaseBtn->setFixedSize(70, 70);
+  decreaseBtn->setStyleSheet(R"(
+    QPushButton {
+      font-size: 50px;
+      font-weight: 500;
+      border-radius: 35px;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #4a4a4a;
+    }
+  )");
+
+  // Increase button
+  QPushButton *increaseBtn = new QPushButton("+");
+  increaseBtn->setFixedSize(70, 70);
+  increaseBtn->setStyleSheet(R"(
+    QPushButton {
+      font-size: 50px;
+      font-weight: 500;
+      border-radius: 35px;
+      background-color: #393939;
+    }
+    QPushButton:pressed {
+      background-color: #4a4a4a;
+    }
+  )");
+
+  distanceLayout->addWidget(decreaseBtn);
+  distanceLayout->addWidget(valueLabel);
+  distanceLayout->addWidget(increaseBtn);
+
+  // Logic for button clicks
+  QObject::connect(decreaseBtn, &QPushButton::clicked, [=, &p, valueLabel]() {
+    int current_val = 0;
+    try {
+      std::string val_str = p.get("WazeAlertsDistance");
+      if (!val_str.empty()) {
+        current_val = std::stoi(val_str);
+      }
+    } catch (...) {
+      current_val = 200;
+    }
+
+    // Find current index and move to previous value if possible
+    auto it = std::find(distance_values.begin(), distance_values.end(), current_val);
+    if (it != distance_values.end() && it != distance_values.begin()) {
+      int idx = std::distance(distance_values.begin(), it);
+      int new_val = distance_values[idx - 1];
+      p.put("WazeAlertsDistance", std::to_string(new_val));
+      valueLabel->setText(QString("%1m").arg(new_val));
+    }
+  });
+
+  QObject::connect(increaseBtn, &QPushButton::clicked, [=, &p, valueLabel]() {
+    int current_val = 0;
+    try {
+      std::string val_str = p.get("WazeAlertsDistance");
+      if (!val_str.empty()) {
+        current_val = std::stoi(val_str);
+      }
+    } catch (...) {
+      current_val = 200;
+    }
+
+    // Find current index and move to next value if possible
+    auto it = std::find(distance_values.begin(), distance_values.end(), current_val);
+    if (it != distance_values.end() && it != distance_values.end() - 1) {
+      int idx = std::distance(distance_values.begin(), it);
+      int new_val = distance_values[idx + 1];
+      p.put("WazeAlertsDistance", std::to_string(new_val));
+      valueLabel->setText(QString("%1m").arg(new_val));
+    }
+  });
+
+  // Wrap the layout in a widget and add to the list
+  QWidget *distanceWidget = new QWidget();
+  distanceWidget->setLayout(distanceLayout);
+  distanceWidget->setFixedHeight(120);
+
+  addItem(distanceWidget);
+
+  // Set enabled state based on WazeAlertsEnabled
+  distanceWidget->setEnabled(params.getBool("WazeAlertsEnabled"));
+
+  // Link to main toggle
+  QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [=](bool state) {
+    distanceWidget->setEnabled(state);
+  });
 
   std::vector<QString> longi_button_texts{tr("Aggressive"), tr("Standard"), tr("Relaxed")};
   long_personality_setting = new ButtonParamControl("LongitudinalPersonality", tr("Driving Personality"),
