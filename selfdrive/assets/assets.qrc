@@ -16,6 +16,7 @@
   <file>offroad/icon_wifi_strength_full.svg</file>
 
   <!-- Waze alert icons -->
+  <file>waze_icon.png</file>
   <file>waze_alert_accident.png</file>
   <file>waze_alert_hazard.png</file>
   <file>waze_alert_police.png</file>

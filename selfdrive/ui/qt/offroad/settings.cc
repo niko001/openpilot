@@ -70,7 +70,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   auto wazeEnabled = new ParamControl("WazeAlertsEnabled",
                                      tr("Enable Waze Alerts"),
                                      tr("Enable the Waze alerts service to receive warnings about hazards, traffic, and police reported by other drivers."),
-                                     "../assets/waze_alert_hazard.png");
+                                     "../assets/waze_icon.png");
   addItem(wazeEnabled);
 
   // Alert types toggles - only enabled when the main toggle is on
