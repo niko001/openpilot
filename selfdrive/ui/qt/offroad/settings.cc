@@ -140,19 +140,22 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
     toggle->setEnabled(params.getBool("WazeAlertsEnabled"));
   }
 
-  // Alert distance selector with proper error handling
-  std::vector<QString> distance_options{"100m", "200m", "300m", "400m", "500m"};
-  std::vector<QString> distance_values{"100", "200", "300", "400", "500"};
-  int default_distance_idx = 1; // 200m is default (index 1)
 
-  // Initialize the WazeAlertsDistance parameter if it doesn't exist
-  Params p;
-  if (p.get("WazeAlertsDistance").empty()) {
-    p.put("WazeAlertsDistance", "200");
-  }
 
   try {
-    auto distance_btn = new ButtonParamControl("WazeAlertsDistance",
+
+    // Alert distance selector with proper error handling
+    std::vector<QString> distance_options{"100m", "200m", "300m", "400m", "500m"};
+    std::vector<QString> distance_values{"100", "200", "300", "400", "500"};
+    int default_distance_idx = 1; // 200m is default (index 1)
+
+    // Initialize the WazeAlertsDistance parameter if it doesn't exist
+    Params p;
+    if (p.get("WazeAlertsDistance").empty()) {
+      p.put("WazeAlertsDistance", "200");
+    }
+
+    distance_btn = new ButtonParamControl("WazeAlertsDistance",
                                             tr("Alert Distance"),
                                             tr("Set the distance at which alerts will be announced before reaching them."),
                                             "../assets/waze_icon.png", // Using an existing icon to prevent loading errors
