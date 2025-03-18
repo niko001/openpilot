@@ -63,6 +63,127 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
     },
   };
 
+  // Add Waze Alerts section header
+  addItem(new LabelControl(tr("━━━━━━━━━ Waze Alerts ━━━━━━━━━"), ""));
+
+  // Main toggle for enabling/disabling Waze Alerts
+  auto wazeEnabled = new ParamControl("WazeAlertsEnabled",
+                                     tr("Enable Waze Alerts"),
+                                     tr("Enable the Waze alerts service to receive warnings about hazards, traffic, and police reported by other drivers."),
+                                     "../assets/waze_alert_hazard.png");
+  addItem(wazeEnabled);
+
+  // Alert types toggles - only enabled when the main toggle is on
+  std::vector<std::tuple<QString, QString, QString, QString>> waze_toggle_defs{
+    {
+      "WazeAlertsHazards",
+      tr("Hazard Alerts"),
+      tr("Receive alerts about road hazards such as objects on the road, accidents, and construction."),
+      "../assets/waze_alert_hazard.png",
+    },
+    {
+      "WazeAlertsJams",
+      tr("Traffic Jam Alerts"),
+      tr("Receive alerts about traffic jams and slowdowns ahead."),
+      "../assets/waze_alert_jam.png",
+    },
+    {
+      "WazeAlertsAccidents",
+      tr("Accident Alerts"),
+      tr("Receive alerts about accidents on your route."),
+      "../assets/waze_alert_accident.png",
+    },
+    {
+      "WazeAlertsPolice",
+      tr("Police Alerts"),
+      tr("Receive alerts about police activity reported by other drivers."),
+      "../assets/waze_alert_police.png",
+    },
+    {
+      "WazeAlertsRoadClosed",
+      tr("Road Closed Alerts"),
+      tr("Receive alerts about road closures on your route."),
+      "../assets/waze_alert_road_closed.png",
+    },
+    {
+      "WazeAlertsSpeedCameras",
+      tr("Speed Camera Alerts"),
+      tr("Receive alerts about speed cameras ahead."),
+      "../assets/waze_alert_camera.png",
+    },
+    {
+      "WazeAlertsRedLightCameras",
+      tr("Red Light Camera Alerts"),
+      tr("Receive alerts about red light cameras at intersections."),
+      "../assets/waze_alert_camera.png",
+    }
+  };
+
+  // Connect the main toggle to enable/disable child toggles
+  QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [=](bool state) {
+    // Update process state when toggled
+    QString command = state ? "start" : "stop";
+    Params().put("RunWazed", state ? "1" : "0");
+  });
+
+  for (auto &[param, title, desc, icon] : waze_toggle_defs) {
+    auto toggle = new ParamControl(param, title, desc, icon, this);
+    addItem(toggle);
+    toggles[param.toStdString()] = toggle;
+
+    // Make the toggle dependent on the main WazeAlertsEnabled toggle
+    QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [toggle](bool state) {
+      toggle->setEnabled(state);
+    });
+
+    // Initialize the toggle enabled state
+    toggle->setEnabled(params.getBool("WazeAlertsEnabled"));
+  }
+
+  // Alert distance selector
+  std::vector<QString> distance_options{"100m", "200m", "300m", "400m", "500m"};
+  std::vector<QString> distance_values{"100", "200", "300", "400", "500"};
+  int default_distance_idx = 1; // 200m is default (index 1)
+
+  auto distance_btn = new ButtonParamControl("WazeAlertsDistance",
+                                           tr("Alert Distance"),
+                                           tr("Set the distance at which alerts will be announced before reaching them."),
+                                           "../assets/offroad/icon_distance.png",
+                                           distance_options);
+
+  // Set the current value
+  std::string current_distance = params.get("WazeAlertsDistance");
+  if (current_distance.empty()) {
+    // Default to 200m if not set
+    params.put("WazeAlertsDistance", "200");
+    distance_btn->setCheckedButton(default_distance_idx);
+  } else {
+    // Find the index of the current distance value
+    auto it = std::find(distance_values.begin(), distance_values.end(), QString::fromStdString(current_distance));
+    if (it != distance_values.end()) {
+      int idx = std::distance(distance_values.begin(), it);
+      distance_btn->setCheckedButton(idx);
+    } else {
+      // If not found, default to 200m
+      distance_btn->setCheckedButton(default_distance_idx);
+    }
+  }
+
+  // Connect button click to update the distance
+  QObject::connect(distance_btn, &ButtonParamControl::clicked, [=](int index) {
+    if (index >= 0 && index < distance_values.size()) {
+      params.put("WazeAlertsDistance", distance_values[index].toStdString());
+    }
+  });
+
+  addItem(distance_btn);
+  distance_btn->setEnabled(params.getBool("WazeAlertsEnabled"));
+
+  // Link distance selector enabled state to main toggle
+  QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [distance_btn](bool state) {
+    distance_btn->setEnabled(state);
+  });
+
 
   std::vector<QString> longi_button_texts{tr("Aggressive"), tr("Standard"), tr("Relaxed")};
   long_personality_setting = new ButtonParamControl("LongitudinalPersonality", tr("Driving Personality"),
@@ -326,7 +447,7 @@ void SettingsWindow::setCurrentPanel(int index, const QString &param) {
     if (param.endsWith("Panel")) {
       QString panelName = param;
       panelName.chop(5); // Remove "Panel" suffix
-      
+
       // Find the panel by name
       for (int i = 0; i < nav_btns->buttons().size(); i++) {
         if (nav_btns->buttons()[i]->text() == tr(panelName.toStdString().c_str())) {
@@ -338,7 +459,7 @@ void SettingsWindow::setCurrentPanel(int index, const QString &param) {
       emit expandToggleDescription(param);
     }
   }
-  
+
   panel_widget->setCurrentIndex(index);
   nav_btns->buttons()[index]->setChecked(true);
 }

@@ -30,7 +30,7 @@ logger = logging.getLogger("wazed")
 # Constants for the Waze alerts module
 WAZE_API_UPDATE_INTERVAL = 120  # Update every 2 minutes (in seconds)
 BOUNDING_BOX_WIDTH = 0.07  # About 5-7 km depending on latitude
-ALERT_DISTANCE_THRESHOLD = 200  # Meters, distance to trigger alert
+DEFAULT_ALERT_DISTANCE = 200  # Default meters, distance to trigger alert
 CHECK_ALERTS_INTERVAL = 1.0  # Check for alerts every 1 second
 ALERT_DURATION = 10.0  # Display alert for 10 seconds
 
@@ -68,7 +68,19 @@ def haversine_distance(lat1, lon1, lat2, lon2):
   r = 6371000  # Radius of Earth in meters
   return c * r
 
-def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshold=ALERT_DISTANCE_THRESHOLD):
+def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshold=None):
+  # Get the user-configurable alert distance
+  if threshold is None:
+    # Read from params
+    params = Params()
+    alert_distance_str = params.get("WazeAlertsDistance")
+    if alert_distance_str:
+      try:
+        threshold = float(alert_distance_str)
+      except ValueError:
+        threshold = DEFAULT_ALERT_DISTANCE
+    else:
+      threshold = DEFAULT_ALERT_DISTANCE
   """Determine if car is approaching the alert within the threshold distance."""
   distance = haversine_distance(car_lat, car_lon, alert_lat, alert_lon)
 
@@ -217,6 +229,26 @@ class WazeAlertManager:
     self.active_alert = None
     self.alert_start_time = 0
 
+  def is_alert_type_enabled(self, alert_type, alert_subtype, params):
+    """Check if the alert type is enabled in the settings"""
+    # Default to enabled if setting doesn't exist
+    if alert_type == "HAZARD":
+      return params.getBool("WazeAlertsHazards", True)
+    elif alert_type == "JAM":
+      return params.getBool("WazeAlertsJams", True)
+    elif alert_type == "ACCIDENT":
+      return params.getBool("WazeAlertsAccidents", True)
+    elif alert_type == "POLICE":
+      return params.getBool("WazeAlertsPolice", True)
+    elif alert_type == "ROAD_CLOSED":
+      return params.getBool("WazeAlertsRoadClosed", True)
+    elif alert_subtype == "SPEED_CAMERA":
+      return params.getBool("WazeAlertsSpeedCameras", True)
+    elif alert_subtype == "REDLIGHT_CAMERA":
+      return params.getBool("WazeAlertsRedLightCameras", True)
+    # Default to enabled for unknown types
+    return True
+
   def publish_waze_alert_message(self, alert_data=None):
     """Publish wazeAlerts message to inform the system of Waze alerts."""
     msg = messaging.new_message('wazeAlerts')
@@ -262,6 +294,16 @@ class WazeAlertManager:
   def check_alerts(self):
     """Check for approaching alerts and trigger UI notifications if found."""
     global current_alert, alert_start_time
+    params = Params()
+
+    # Check if Waze Alerts are enabled
+    if not params.getBool("WazeAlertsEnabled"):
+      # If not enabled, clear any active alert and return
+      if self.active_alert:
+        logger.info("Waze Alerts disabled, clearing active alert")
+        self.active_alert = None
+        self.publish_waze_alert_message()
+      return
 
     current_time = time.time()
 
@@ -301,8 +343,15 @@ class WazeAlertManager:
         is_ahead, distance = is_approaching(self.current_lat, self.current_lon, self.bearing,
                                            alert_lat, alert_lon)
 
-        # If we're approaching this alert and haven't alerted about it recently
-        if is_ahead and alert_uuid not in last_alerted_uuids:
+        # Get alert type and check if this type of alert is enabled
+        alert_type = alert.get('type', 'UNKNOWN')
+        alert_subtype = alert.get('subtype', '')
+
+        # Check if this alert type is enabled by the user settings
+        alert_enabled = self.is_alert_type_enabled(alert_type, alert_subtype, params)
+
+        # If we're approaching this alert, it's enabled, and we haven't alerted about it recently
+        if is_ahead and alert_enabled and alert_uuid not in last_alerted_uuids:
           # Get alert text and sound ID
           title, text = get_alert_text(alert)
           sound_id = get_waze_alert_sound(alert)
