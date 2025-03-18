@@ -117,4 +117,16 @@ inline static std::unordered_map<std::string, uint32_t> keys = {
     {"UpdaterTargetBranch", CLEAR_ON_MANAGER_START},
     {"UpdaterLastFetchTime", PERSISTENT},
     {"Version", PERSISTENT},
+
+    // Waze Alerts parameters
+    {"WazeAlertsEnabled", PERSISTENT},
+    {"WazeAlertsHazards", PERSISTENT},
+    {"WazeAlertsJams", PERSISTENT},
+    {"WazeAlertsAccidents", PERSISTENT},
+    {"WazeAlertsPolice", PERSISTENT},
+    {"WazeAlertsRoadClosed", PERSISTENT},
+    {"WazeAlertsSpeedCameras", PERSISTENT},
+    {"WazeAlertsRedLightCameras", PERSISTENT},
+    {"WazeAlertsDistance", PERSISTENT},
+    {"RunWazed", PERSISTENT},
 };
