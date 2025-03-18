@@ -142,8 +142,17 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   // Create a widget for distance selector with buttons
   QHBoxLayout *distanceLayout = new QHBoxLayout();
+
+  // Add icon
+  QPixmap distanceIcon("../assets/waze_icon.png");
+  QLabel *iconLabel = new QLabel();
+  iconLabel->setPixmap(distanceIcon.scaledToWidth(80, Qt::SmoothTransformation));
+  iconLabel->setStyleSheet("margin-left: 15px;");
+  distanceLayout->addWidget(iconLabel);
+
+  // Add distance label
   QLabel *distanceLabel = new QLabel(tr("Alert Distance"));
-  distanceLabel->setStyleSheet("font-size: 50px; font-weight: 500; margin-left: 15px;");
+  distanceLabel->setStyleSheet("font-size: 50px; font-weight: 500; margin-left: 10px;");
   distanceLayout->addWidget(distanceLabel);
 
   distanceLayout->addStretch();
