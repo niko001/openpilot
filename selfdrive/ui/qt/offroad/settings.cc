@@ -150,7 +150,6 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   // Use fixed distances: 100m, 200m, 300m, 400m, 500m
   std::vector<int> distance_values{100, 200, 300, 400, 500};
-  int default_distance_idx = 1; // 200m is default (index 1)
 
   // Initialize the parameter if needed
   Params p;
