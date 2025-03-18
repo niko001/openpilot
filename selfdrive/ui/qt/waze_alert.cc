@@ -4,6 +4,7 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QDebug>
+#include <QSvgRenderer>
 
 WazeAlertOverlay::WazeAlertOverlay(QWidget *parent) : QWidget(parent) {
   // Set up timers
@@ -136,29 +137,83 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
   p.drawRoundedRect(r, radius, radius);
   p.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
-  // Draw the title
-  p.setPen(QColor(0xff, 0xff, 0xff, 0xff * opacity));
-  p.setRenderHint(QPainter::TextAntialiasing);
-
-  // Use the same font as alerts.cc - InterFont is a custom function, using QFont directly
-  QFont titleFont("Inter", 88, QFont::Bold);
-  p.setFont(titleFont);
-
-  // Title centered at top with more space
-  QRect titleRect(x, y + 20, width, 120);
-  p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignTop, alertTitle);
-
-  // Text below title with slightly smaller font for better fit
-  QFont textFont("Inter", 64);
-  p.setFont(textFont);
-
-  // Add distance to the description text
-  QString displayText = alertText;
-  if (alertDistance > 0) {
-    displayText += QString("\n%1 m").arg(qRound(alertDistance));
+  // Get the appropriate SVG file based on alert type
+  QString iconPath = ":/waze_alert_hazard.svg"; // Default to hazard icon
+  if (alertType == "POLICE") {
+    iconPath = ":/waze_alert_police.svg";
+  } else if (alertType == "ACCIDENT") {
+    iconPath = ":/waze_alert_accident.svg";
+  } else if (alertType == "ROAD_CLOSED") {
+    iconPath = ":/waze_alert_road_closed.svg";
   }
 
-  // More space for the text content
-  QRect textRect(x, y + 150, width, height - 170);
-  p.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, displayText);
+  // Draw the icon on the left side
+  QSvgRenderer svgRenderer(iconPath);
+  if (svgRenderer.isValid()) {
+    // Calculate icon position (left side, vertically centered)
+    int iconSize = height * 0.7; // 70% of the height
+    int iconX = x + 40; // Left margin within alert box
+    int iconY = y + (height - iconSize) / 2; // Vertically centered
+
+    QRectF iconRect(iconX, iconY, iconSize, iconSize);
+    svgRenderer.setAspectRatioMode(Qt::KeepAspectRatio);
+    svgRenderer.render(&p, iconRect);
+
+    // Adjust the content area to leave space for the icon
+    int contentX = iconX + iconSize + 30; // Icon width + spacing
+    int contentWidth = width - (contentX - x) - 40; // Remaining width minus right margin
+
+    // Draw the title
+    p.setPen(QColor(0xff, 0xff, 0xff, 0xff * opacity));
+    p.setRenderHint(QPainter::TextAntialiasing);
+
+    // Use the same font as alerts.cc - InterFont is a custom function, using QFont directly
+    QFont titleFont("Inter", 88, QFont::Bold);
+    p.setFont(titleFont);
+
+    // Title at top with more space
+    QRect titleRect(contentX, y + 20, contentWidth, 120);
+    p.drawText(titleRect, Qt::AlignLeft | Qt::AlignTop, alertTitle);
+
+    // Text below title with slightly smaller font for better fit
+    QFont textFont("Inter", 64);
+    p.setFont(textFont);
+
+    // Add distance to the description text
+    QString displayText = alertText;
+    if (alertDistance > 0) {
+      displayText += QString("\n%1 m").arg(qRound(alertDistance));
+    }
+
+    // More space for the text content
+    QRect textRect(contentX, y + 150, contentWidth, height - 170);
+    p.drawText(textRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, displayText);
+  } else {
+    // Fallback to centered text if icon can't be loaded
+    // Draw the title
+    p.setPen(QColor(0xff, 0xff, 0xff, 0xff * opacity));
+    p.setRenderHint(QPainter::TextAntialiasing);
+
+    // Use the same font as alerts.cc - InterFont is a custom function, using QFont directly
+    QFont titleFont("Inter", 88, QFont::Bold);
+    p.setFont(titleFont);
+
+    // Title centered at top with more space
+    QRect titleRect(x, y + 20, width, 120);
+    p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignTop, alertTitle);
+
+    // Text below title with slightly smaller font for better fit
+    QFont textFont("Inter", 64);
+    p.setFont(textFont);
+
+    // Add distance to the description text
+    QString displayText = alertText;
+    if (alertDistance > 0) {
+      displayText += QString("\n%1 m").arg(qRound(alertDistance));
+    }
+
+    // More space for the text content
+    QRect textRect(x, y + 150, width, height - 170);
+    p.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, displayText);
+  }
 }
