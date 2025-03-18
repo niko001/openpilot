@@ -101,8 +101,8 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
   int margin = 40;
   int radius = 30;
 
-  // Increase height for more spacious alerts
-  int height = this->height() * 0.35; // 35% of screen height
+  // Further increase the height for a more spacious alert
+  int height = this->height() * 0.45; // 45% of screen height
 
   // Calculate position at the bottom of the screen with margin
   int width = this->width() - margin * 2;
@@ -194,7 +194,7 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
 
     // Title centered in the top section
     QRect titleRect(contentX, y, contentWidth, titleHeight);
-    p.drawText(titleRect, Qt::AlignLeft | Qt::AlignVCenter, alertTitle);
+    p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignVCenter, alertTitle);
 
     // Text below title with slightly smaller font for better fit
     QFont textFont("Inter", 64);
@@ -208,7 +208,7 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
 
     // Text centered in the bottom section
     QRect textRect(contentX, y + titleHeight, contentWidth, textHeight);
-    p.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, displayText);
+    p.drawText(textRect, Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap, displayText);
   } else {
     // Fallback to centered text if icon can't be loaded
     // Draw the title
