@@ -140,79 +140,27 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
     toggle->setEnabled(params.getBool("WazeAlertsEnabled"));
   }
 
-
-
-  try {
-
-    // Alert distance selector with proper error handling
-    std::vector<QString> distance_options{"100m", "200m", "300m", "400m", "500m"};
-    std::vector<QString> distance_values{"100", "200", "300", "400", "500"};
-    int default_distance_idx = 1; // 200m is default (index 1)
-
-    // Initialize the WazeAlertsDistance parameter if it doesn't exist
-    Params p;
-    if (p.get("WazeAlertsDistance").empty()) {
-      p.put("WazeAlertsDistance", "200");
-    }
-
-    auto distance_btn = new ButtonParamControl("WazeAlertsDistance",
-                                            tr("Alert Distance"),
-                                            tr("Set the distance at which alerts will be announced before reaching them."),
-                                            "../assets/waze_icon.png", // Using an existing icon to prevent loading errors
-                                            distance_options);
-
-    // Safely get the current value with proper validation
-    std::string current_distance = p.get("WazeAlertsDistance");
-
-    // Always ensure we have a valid default
-    bool valid_value = false;
-    int idx = default_distance_idx;
-
-    // Only attempt to find the index if we have a non-empty value
-    if (!current_distance.empty()) {
-      QString str_val = QString::fromStdString(current_distance);
-      for (int i = 0; i < distance_values.size(); i++) {
-        if (distance_values[i] == str_val) {
-          idx = i;
-          valid_value = true;
-          break;
-        }
-      }
-    }
-
-    // If the value wasn't valid, reset it to default
-    if (!valid_value) {
-      p.put("WazeAlertsDistance", "200");
-    }
-
-    // Now safely set the button with bounds checking
-    if (idx >= 0 && idx < distance_options.size()) {
-      distance_btn->setCheckedButton(idx);
-    } else {
-      distance_btn->setCheckedButton(default_distance_idx);
-    }
-
-    addItem(distance_btn);
-
-    // Safe check for WazeAlertsEnabled param
-    bool enabled = false;
-    try {
-      enabled = p.getBool("WazeAlertsEnabled");
-    } catch (...) {
-      // Default to disabled if there's an error
-    }
-    distance_btn->setEnabled(enabled);
-
-    // Link distance selector enabled state to main toggle
-    QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [distance_btn](bool state) {
-      distance_btn->setEnabled(state);
-    });
-  } catch (const std::exception &e) {
-    qWarning() << "Error creating distance selector:" << e.what();
-    // If there's an error creating the control, we'll just skip it rather than crashing
+  // Initialize WazeAlertsDistance to 200m if needed
+  Params p;
+  if (p.get("WazeAlertsDistance").empty()) {
+    p.put("WazeAlertsDistance", "200");
   }
 
+  // Simple label for alert distance instead of complex control
+  QString distance_text = "200m";
+  try {
+    std::string dist_str = p.get("WazeAlertsDistance");
+    if (!dist_str.empty()) {
+      int dist = std::stoi(dist_str);
+      distance_text = QString("%1m").arg(dist);
+    }
+  } catch (...) {
+    // Keep default if there's an error
+  }
 
+  auto distance_label = new LabelControl(tr("Alert Distance"), distance_text,
+                                         tr("Distance at which alerts will be announced (set to 200m by default)."));
+  addItem(distance_label);
 
   std::vector<QString> longi_button_texts{tr("Aggressive"), tr("Standard"), tr("Relaxed")};
   long_personality_setting = new ButtonParamControl("LongitudinalPersonality", tr("Driving Personality"),
