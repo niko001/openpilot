@@ -155,7 +155,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
       p.put("WazeAlertsDistance", "200");
     }
 
-    distance_btn = new ButtonParamControl("WazeAlertsDistance",
+    auto distance_btn = new ButtonParamControl("WazeAlertsDistance",
                                             tr("Alert Distance"),
                                             tr("Set the distance at which alerts will be announced before reaching them."),
                                             "../assets/waze_icon.png", // Using an existing icon to prevent loading errors
