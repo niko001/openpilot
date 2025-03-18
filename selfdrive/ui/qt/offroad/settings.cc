@@ -141,9 +141,9 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   }
 
   // Alert distance selector
-  std::vector<QString> distance_options{"100m", "200m", "300m", "400m", "500m"};
-  std::vector<QString> distance_values{"100", "200", "300", "400", "500"};
-  //int default_distance_idx = 1; // 200m is default (index 1)
+  std::vector<QString> distance_options{"100m", "200m", "300m"};
+  std::vector<QString> distance_values{"100", "200", "300"};
+  int default_distance_idx = 1; // 200m is default (index 1)
 
   auto distance_btn = new ButtonParamControl("WazeAlertsDistance",
                                            tr("Alert Distance"),
@@ -151,6 +151,25 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
                                            "../assets/offroad/icon_road.png",
                                            distance_options);
 
+  // Set the current value
+  std::string current_distance = params.get("WazeAlertsDistance");
+  if (current_distance.empty()) {
+    // Default to 200m if not set
+    params.put("WazeAlertsDistance", "200");
+    distance_btn->setCheckedButton(default_distance_idx);
+  } else {
+    // Find the index of the current distance value
+    auto it = std::find(distance_values.begin(), distance_values.end(), QString::fromStdString(current_distance));
+    if (it != distance_values.end()) {
+      int idx = std::distance(distance_values.begin(), it);
+      distance_btn->setCheckedButton(idx);
+    } else {
+      // If not found, default to 200m
+      distance_btn->setCheckedButton(default_distance_idx);
+    }
+  }
+
+  // No need to connect - ButtonParamControl handles the parameter update internally
 
   addItem(distance_btn);
   distance_btn->setEnabled(params.getBool("WazeAlertsEnabled"));
