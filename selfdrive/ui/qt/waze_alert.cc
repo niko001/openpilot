@@ -216,7 +216,7 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
     p.setRenderHint(QPainter::TextAntialiasing);
 
     // Use the same font as alerts.cc - InterFont is a custom function, using QFont directly
-    QFont titleFont("Inter", 88, QFont::Bold);
+    QFont titleFont("Inter", 80, QFont::Bold);
     p.setFont(titleFont);
 
     // Divide the content area into two equal sections for better centering
@@ -228,7 +228,7 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
     p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignVCenter, alertTitle);
 
     // Text below title with slightly smaller font for better fit
-    QFont textFont("Inter", 64);
+    QFont textFont("Inter", 55);
     p.setFont(textFont);
 
     // Add distance to the description text
