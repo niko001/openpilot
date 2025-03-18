@@ -56,6 +56,13 @@ api_is_busy = False  # Flag to prevent concurrent API calls
 current_alert = None  # Currently active alert
 alert_start_time = 0  # When the current alert started showing
 
+def safe_get_bool(params, key, default=False):
+  """Safely gets a boolean parameter with a default value if the key doesn't exist."""
+  try:
+    return params.get_bool(key)
+  except Exception:
+    return default
+
 def haversine_distance(lat1, lon1, lat2, lon2):
   """Calculate the great circle distance between two points on the earth."""
   # Convert decimal degrees to radians
@@ -235,19 +242,19 @@ class WazeAlertManager:
     """Check if the alert type is enabled in the settings"""
     # Default to enabled if setting doesn't exist
     if alert_type == "HAZARD":
-      return params.get_bool("WazeAlertsHazards", True)
+      return safe_get_bool(params, "WazeAlertsHazards", True)
     elif alert_type == "JAM":
-      return params.get_bool("WazeAlertsJams", True)
+      return safe_get_bool(params, "WazeAlertsJams", True)
     elif alert_type == "ACCIDENT":
-      return params.get_bool("WazeAlertsAccidents", True)
+      return safe_get_bool(params, "WazeAlertsAccidents", True)
     elif alert_type == "POLICE":
-      return params.get_bool("WazeAlertsPolice", True)
+      return safe_get_bool(params, "WazeAlertsPolice", True)
     elif alert_type == "ROAD_CLOSED":
-      return params.get_bool("WazeAlertsRoadClosed", True)
+      return safe_get_bool(params, "WazeAlertsRoadClosed", True)
     elif alert_subtype == "SPEED_CAMERA":
-      return params.get_bool("WazeAlertsSpeedCameras", True)
+      return safe_get_bool(params, "WazeAlertsSpeedCameras", True)
     elif alert_subtype == "REDLIGHT_CAMERA":
-      return params.get_bool("WazeAlertsRedLightCameras", True)
+      return safe_get_bool(params, "WazeAlertsRedLightCameras", True)
     # Default to enabled for unknown types
     return True
 
@@ -395,6 +402,42 @@ class WazeAlertManager:
         cloudlog.exception(f"Wazed: Error processing alert: {e}")
         logger.exception(f"Error processing alert: {e}")
 
+def initialize_params():
+  """Initialize all waze alert parameters with default values"""
+  params = Params()
+
+  # Set default values for all parameters if they don't exist
+  # Use put parameter to create the key with default values
+  param_defaults = {
+    "WazeAlertsEnabled": True,
+    "WazeAlertsHazards": True,
+    "WazeAlertsJams": True,
+    "WazeAlertsAccidents": True,
+    "WazeAlertsPolice": True,
+    "WazeAlertsRoadClosed": True,
+    "WazeAlertsSpeedCameras": True,
+    "WazeAlertsRedLightCameras": True
+  }
+
+  for param, default in param_defaults.items():
+    try:
+      # Try to get the parameter to see if it exists
+      params.get_bool(param)
+      logger.debug(f"Parameter {param} already exists")
+    except Exception:
+      # If it doesn't exist, create it with the default value
+      logger.info(f"Creating parameter {param} with default value {default}")
+      params.put_bool(param, default)
+
+  # Create distance parameter if it doesn't exist
+  try:
+    distance = params.get("WazeAlertsDistance")
+    if not distance:  # Empty string means it doesn't exist
+      raise Exception("Distance parameter not found")
+  except Exception:
+    logger.info(f"Creating WazeAlertsDistance parameter with default (200)")
+    params.put("WazeAlertsDistance", "200")
+
 def wazed_thread(alert_manager):
   """Background thread to fetch Waze alerts and check GPS data"""
   sm = messaging.SubMaster(['gpsLocationExternal'])
@@ -407,8 +450,11 @@ def wazed_thread(alert_manager):
   # For checking if service is enabled
   last_enabled_check_time = 0
 
+  # Make sure we have our parameters initialized
+  initialize_params()
+
   # Track service enabled state for logging changes
-  service_enabled = params.get_bool("WazeAlertsEnabled")
+  service_enabled = safe_get_bool(params, "WazeAlertsEnabled", True)
   logger.info(f"Wazed service starting with enabled={service_enabled}")
 
   # Clear any active alerts at startup if the service is disabled
@@ -422,7 +468,7 @@ def wazed_thread(alert_manager):
     # Check if service is enabled periodically
     if current_time - last_enabled_check_time >= ENABLED_CHECK_INTERVAL:
       previous_state = service_enabled
-      service_enabled = params.get_bool("WazeAlertsEnabled")
+      service_enabled = safe_get_bool(params, "WazeAlertsEnabled", True)
       last_enabled_check_time = current_time
 
       # Log state changes
