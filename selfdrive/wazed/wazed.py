@@ -421,12 +421,14 @@ def initialize_default_params():
 
   # Initialize boolean parameters
   for key, default_value in defaults.items():
-    # Check if the parameter exists, if not create it with default value
-    try:
-      params.get_bool(key)
-    except Exception:
+    # Check if the parameter exists by directly checking if the raw value is empty
+    param_value = params.get(key)
+    if param_value in (None, b''):
       logger.info(f"Creating parameter {key} with default value {default_value}")
       params.put_bool(key, default_value)
+    else:
+      # Log the existing value for debugging
+      logger.info(f"Parameter {key} already exists with value: {param_value == b'1'}")
 
   # Initialize distance parameter (string parameter)
   if params.get("WazeAlertsDistance") in (None, b''):
