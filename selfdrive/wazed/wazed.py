@@ -233,6 +233,7 @@ class WazeAlertManager:
       msg.wazeAlerts.alertText1 = alert["title"]
       msg.wazeAlerts.alertText2 = alert["text"]
       msg.wazeAlerts.alertType = alert["alert_type"]
+      msg.wazeAlerts.alertSubType = alert.get("subtype", "")
       msg.wazeAlerts.alertSound = alert["sound_id"]
       msg.wazeAlerts.alertDistance = alert["distance"]
     else:

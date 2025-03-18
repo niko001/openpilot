@@ -25,6 +25,7 @@ struct WazeAlerts @0x81c2f05a394cf4af {
   alertText1 @4 :Text;    # Primary alert text (e.g., "Police Ahead")
   alertText2 @5 :Text;    # Secondary alert text (e.g., "On I-5 South")
   alertType @6 :Text;     # Type of alert (e.g., "POLICE", "ACCIDENT")
+  alertSubType @9 :Text;  # Subtype of alert (e.g., "HAZARD_ON_SHOULDER_CAR_STOPPED")
   alertSound @7 :Int32;   # Sound ID to play
   alertDistance @8 :Float32;  # Distance to the alert in meters
 }

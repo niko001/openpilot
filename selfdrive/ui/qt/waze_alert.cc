@@ -54,6 +54,7 @@ void WazeAlertOverlay::updateState(const UIState &s) {
       alertTitle = QString::fromStdString(waze_alerts.getAlertText1());
       alertText = QString::fromStdString(waze_alerts.getAlertText2());
       alertType = QString::fromStdString(waze_alerts.getAlertType());
+      alertSubType = QString::fromStdString(waze_alerts.getAlertSubType());
       alertDistance = waze_alerts.getAlertDistance();
 
       // Start showing the alert
@@ -137,14 +138,28 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
   p.drawRoundedRect(r, radius, radius);
   p.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
-  // Get the appropriate icon file based on alert type
-  QString iconPath = ":/waze_alert_hazard.svg"; // Default to hazard icon
+  // Get the appropriate icon file based on alert type and subtype
+  QString iconPath = ":/waze_alert_hazard.png"; // Default to hazard icon
+
+  // First check main alert types
   if (alertType == "POLICE") {
-    iconPath = ":/waze_alert_police.svg";
+    iconPath = ":/waze_alert_police.png";
   } else if (alertType == "ACCIDENT") {
-    iconPath = ":/waze_alert_accident.svg";
+    iconPath = ":/waze_alert_accident.png";
   } else if (alertType == "ROAD_CLOSED") {
-    iconPath = ":/waze_alert_road_closed.svg";
+    iconPath = ":/waze_alert_road_closed.png";
+  } else if (alertType == "JAM") {
+    iconPath = ":/waze_alert_jam.png";
+  } else if (alertType == "HAZARD") {
+    // For hazard type, check the subtype for more specific icons
+    if (alertSubType.contains("CAR_STOPPED", Qt::CaseInsensitive) ||
+        alertSubType.contains("STOPPED_VEHICLE", Qt::CaseInsensitive)) {
+      iconPath = ":/waze_alert_stopped_vehicle.png";
+    } else if (alertSubType.contains("CONSTRUCTION", Qt::CaseInsensitive)) {
+      iconPath = ":/waze_alert_construction.png";
+    }
+  } else if (alertType == "CAMERA") {
+    iconPath = ":/waze_alert_camera.png";
   }
 
   // Draw the icon on the left side

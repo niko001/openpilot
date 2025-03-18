@@ -26,6 +26,7 @@ private:
   QString alertTitle;
   QString alertText;
   QString alertType;
+  QString alertSubType;
   float alertDistance = 0.0;
   QTimer *dismissTimer;
   QTimer *animationTimer;

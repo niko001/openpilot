@@ -16,11 +16,14 @@
   <file>offroad/icon_wifi_strength_full.svg</file>
 
   <!-- Waze alert icons -->
-  <file>waze_alert_accident.svg</file>
-  <file>waze_alert_hazard.svg</file>
-  <file>waze_alert_police.svg</file>
-  <file>waze_alert_road_closed.svg</file>
-  <file>waze_alert_camera.svg</file>
+  <file>waze_alert_accident.png</file>
+  <file>waze_alert_hazard.png</file>
+  <file>waze_alert_police.png</file>
+  <file>waze_alert_road_closed.png</file>
+  <file>waze_alert_jam.png</file>
+  <file>waze_alert_stopped_vehicle.png</file>
+  <file>waze_alert_construction.png</file>
+  <file>waze_alert_camera.png</file>
 
   <file alias="languages.json">../ui/translations/languages.json</file>
 </qresource>
