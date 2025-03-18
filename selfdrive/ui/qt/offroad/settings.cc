@@ -169,12 +169,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
     }
   }
 
-  // Connect button value change to update the distance
-  QObject::connect(distance_btn, &ButtonParamControl::buttonClicked, [=](int index) {
-    if (index >= 0 && index < distance_values.size()) {
-      params.put("WazeAlertsDistance", distance_values[index].toStdString());
-    }
-  });
+  // No need to connect - ButtonParamControl handles the parameter update internally
 
   addItem(distance_btn);
   distance_btn->setEnabled(params.getBool("WazeAlertsEnabled"));
