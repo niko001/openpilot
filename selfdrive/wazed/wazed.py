@@ -110,6 +110,64 @@ def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshol
 
   return angle_diff < 90 and distance <= threshold, distance
 
+def fetch_permanent_hazards(lat, lon, timeout=10):
+  """Fetch permanent hazards like speed cameras and red light cameras from the Waze API."""
+  # Calculate bounding box
+  half_width = BOUNDING_BOX_WIDTH / 2
+  top = lat + half_width
+  bottom = lat - half_width
+  left = lon - half_width
+  right = lon + half_width
+
+  # Construct the URL for permanent hazards (fixed cameras)
+  url = f"https://www.waze.com/row-Descartes/app/Features?bbox={left}%2C{bottom}%2C{right}%2C{top}&language=en-US&v=2&roadTypes=2%2C3%2C4%2C6%2C7%2C8%2C9%2C10%2C15%2C16%2C17%2C18%2C19%2C20%2C22&sandbox=true"
+
+  permanent_hazards = []
+  try:
+    logger.info(f"Wazed: Making permanent hazards API request to {url}")
+    response = requests.get(url, timeout=timeout)
+    logger.info(f"Wazed: Permanent hazards response status: {response.status_code}")
+
+    if response.status_code == 200:
+      data = response.json()
+      if "permanentHazards" in data and "objects" in data["permanentHazards"]:
+        objects = data["permanentHazards"]["objects"]
+        for idx, obj in enumerate(objects):
+          # Check if it's a camera (type 10) and has subtypes
+          if obj.get("type") == 10 and "subTypes" in obj and len(obj["subTypes"]) > 0:
+            camera_type = obj["subTypes"][0]
+            if camera_type in ["SPEED", "RED_LIGHT"]:
+              # Get geometry data if available
+              location = {"x": 0, "y": 0}
+              if "geometry" in obj and "coordinates" in obj["geometry"]:
+                coords = obj["geometry"]["coordinates"]
+                location = {"x": coords[0], "y": coords[1]}  # x is longitude, y is latitude
+
+              # Generate a unique ID for this camera
+              uuid = f"cam-{obj.get('id', idx)}"
+
+              # Create alert in the same format as regular alerts
+              alert = {
+                "type": "CAMERA",
+                "subtype": camera_type,
+                "location": location,
+                "uuid": uuid,
+                "street": obj.get("name", ""),
+                "reportDescription": f"{camera_type.replace('_', ' ')} Camera",
+                "isPermanent": True
+              }
+              permanent_hazards.append(alert)
+
+        logger.info(f"Wazed: Processed {len(permanent_hazards)} permanent cameras from {len(objects)} objects")
+      else:
+        logger.warning("Wazed: No permanentHazards.objects field in API response")
+    else:
+      logger.warning(f"Wazed: Non-200 response from permanent hazards API: {response.status_code}")
+  except Exception as e:
+    logger.error(f"Wazed: Error fetching permanent hazards: {e}")
+
+  return permanent_hazards
+
 def fetch_waze_alerts(lat, lon, has_internet_connection=False):
   """Fetch alerts from the Waze API using the specified coordinates as the center of the bounding box."""
   global last_api_call_time, alerts_cache, api_is_busy
@@ -127,6 +185,9 @@ def fetch_waze_alerts(lat, lon, has_internet_connection=False):
 
   api_is_busy = True  # Set flag to prevent concurrent API calls
 
+  # Initialize new alerts list with an empty list (will be populated by API calls)
+  new_alerts = []
+
   # Calculate bounding box
   half_width = BOUNDING_BOX_WIDTH / 2
   top = lat + half_width
@@ -134,7 +195,7 @@ def fetch_waze_alerts(lat, lon, has_internet_connection=False):
   left = lon - half_width
   right = lon + half_width
 
-  # Construct the API URL
+  # Construct the API URL for temporary alerts
   url = f"https://www.waze.com/live-map/api/georss?top={top}&bottom={bottom}&left={left}&right={right}&env=row&types=alerts"
 
   try:
@@ -150,10 +211,9 @@ def fetch_waze_alerts(lat, lon, has_internet_connection=False):
       try:
         data = response.json()
         if "alerts" in data:
-          # Get real alerts from API
-          alerts_cache = data["alerts"]
-          cloudlog.info(f"Wazed: Fetched {len(alerts_cache)} alerts from Waze API (including mock alert)")
-          logger.info(f"Fetched {len(alerts_cache)} alerts from Waze API (including mock alert)")
+          # Get temporary alerts from API
+          new_alerts = data["alerts"]
+          logger.info(f"Wazed: Fetched {len(new_alerts)} temporary alerts from Waze API")
         else:
           cloudlog.warning(f"Wazed: No alerts field in Waze API response. Response keys: {data.keys()}")
           logger.warning(f"No alerts field in Waze API response. Response keys: {data.keys()}")
@@ -163,6 +223,18 @@ def fetch_waze_alerts(lat, lon, has_internet_connection=False):
     else:
       cloudlog.warning(f"Wazed: Non-200 response from API: {response.status_code}")
       logger.warning(f"Non-200 response from API: {response.status_code}")
+
+    # Now fetch permanent hazards (cameras) and add them to the alerts
+    permanent_hazards = fetch_permanent_hazards(lat, lon)
+    if permanent_hazards:
+      logger.info(f"Wazed: Fetched {len(permanent_hazards)} permanent hazards (cameras) from Waze API")
+      new_alerts.extend(permanent_hazards)
+
+    # If we got any alerts (temporary or permanent), update the cache
+    if new_alerts:
+      alerts_cache = new_alerts
+      cloudlog.info(f"Wazed: Updated alerts cache with {len(alerts_cache)} total alerts")
+      logger.info(f"Updated alerts cache with {len(alerts_cache)} total alerts")
   except Exception as e:
     cloudlog.error(f"Wazed: Error fetching Waze alerts: {e}")
     logger.error(f"Error fetching Waze alerts: {e}")
@@ -183,19 +255,28 @@ def fetch_waze_alerts(lat, lon, has_internet_connection=False):
 def get_alert_text(alert):
   """Generate alert text based on the Waze alert data."""
   alert_type = alert.get("type", "UNKNOWN")
+  alert_subtype = alert.get("subtype", "")
   street = alert.get("street", "")
   description = alert.get("reportDescription", "")
+  is_permanent = alert.get("isPermanent", False)
 
-  # Format title based on alert type
-  title_by_type = {
-    "ACCIDENT": "Accident Ahead",
-    "JAM": "Traffic Jam Ahead",
-    "POLICE": "Police Ahead",
-    "HAZARD": "Hazard Ahead",
-    "ROAD_CLOSED": "Road Closed Ahead"
-  }
-
-  title = title_by_type.get(alert_type, f"{alert_type} Ahead")
+  # Format title based on alert type and subtype
+  if alert_type == "CAMERA":
+    if alert_subtype == "SPEED":
+      title = "Speed Camera Ahead"
+    elif alert_subtype == "RED_LIGHT":
+      title = "Red Light Camera Ahead"
+    else:
+      title = "Camera Ahead"
+  else:
+    title_by_type = {
+      "ACCIDENT": "Accident Ahead",
+      "JAM": "Traffic Jam Ahead",
+      "POLICE": "Police Ahead",
+      "HAZARD": "Hazard Ahead",
+      "ROAD_CLOSED": "Road Closed Ahead"
+    }
+    title = title_by_type.get(alert_type, f"{alert_type} Ahead")
 
   # Format the description
   text = ""
@@ -206,7 +287,17 @@ def get_alert_text(alert):
     # Truncate description if too long
     if len(description) > 100:
       description = description[:97] + "..."
-    text += f"\n{description}"
+    if text:
+      text += f"\n{description}"
+    else:
+      text = description
+
+  # Add permanent indicator for fixed cameras
+  if is_permanent and alert_type == "CAMERA":
+    if text:
+      text += "\n(Fixed Camera)"
+    else:
+      text = "(Fixed Camera)"
 
   return title, text
 
@@ -226,9 +317,9 @@ def get_waze_alert_sound(alert_data):
     return WAZE_ALERT_JAM
   elif alert_type == "ROAD_CLOSED":
     return WAZE_ALERT_ROAD_CLOSED
-  elif subtype == "SPEED_CAMERA":
+  elif subtype == "SPEED":
     return WAZE_ALERT_SPEED_CAMERA
-  elif subtype == "REDLIGHT_CAMERA":
+  elif subtype == "RED_LIGHT":
     return WAZE_ALERT_REDLIGHT_CAMERA
   else:
     return 0  # No sound
