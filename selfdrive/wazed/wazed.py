@@ -32,6 +32,7 @@ WAZE_API_UPDATE_INTERVAL = 120  # Update every 2 minutes (in seconds)
 BOUNDING_BOX_WIDTH = 0.07  # About 5-7 km depending on latitude
 DEFAULT_ALERT_DISTANCE = 200  # Default meters, distance to trigger alert
 CHECK_ALERTS_INTERVAL = 1.0  # Check for alerts every 1 second
+ENABLED_CHECK_INTERVAL = 5.0  # Check if service is enabled every 5 seconds
 ALERT_DURATION = 10.0  # Display alert for 10 seconds
 
 # Add a mock alert for testing
@@ -81,6 +82,7 @@ def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshol
         threshold = DEFAULT_ALERT_DISTANCE
     else:
       threshold = DEFAULT_ALERT_DISTANCE
+
   """Determine if car is approaching the alert within the threshold distance."""
   distance = haversine_distance(car_lat, car_lon, alert_lat, alert_lon)
 
@@ -233,19 +235,19 @@ class WazeAlertManager:
     """Check if the alert type is enabled in the settings"""
     # Default to enabled if setting doesn't exist
     if alert_type == "HAZARD":
-      return params.getBool("WazeAlertsHazards", True)
+      return params.get_bool("WazeAlertsHazards", True)
     elif alert_type == "JAM":
-      return params.getBool("WazeAlertsJams", True)
+      return params.get_bool("WazeAlertsJams", True)
     elif alert_type == "ACCIDENT":
-      return params.getBool("WazeAlertsAccidents", True)
+      return params.get_bool("WazeAlertsAccidents", True)
     elif alert_type == "POLICE":
-      return params.getBool("WazeAlertsPolice", True)
+      return params.get_bool("WazeAlertsPolice", True)
     elif alert_type == "ROAD_CLOSED":
-      return params.getBool("WazeAlertsRoadClosed", True)
+      return params.get_bool("WazeAlertsRoadClosed", True)
     elif alert_subtype == "SPEED_CAMERA":
-      return params.getBool("WazeAlertsSpeedCameras", True)
+      return params.get_bool("WazeAlertsSpeedCameras", True)
     elif alert_subtype == "REDLIGHT_CAMERA":
-      return params.getBool("WazeAlertsRedLightCameras", True)
+      return params.get_bool("WazeAlertsRedLightCameras", True)
     # Default to enabled for unknown types
     return True
 
@@ -296,19 +298,12 @@ class WazeAlertManager:
     global current_alert, alert_start_time
     params = Params()
 
-    # Check if Waze Alerts are enabled
-    if not params.getBool("WazeAlertsEnabled"):
-      # If not enabled, clear any active alert and return
-      if self.active_alert:
-        logger.info("Waze Alerts disabled, clearing active alert")
-        self.active_alert = None
-        self.publish_waze_alert_message()
-      return
-
+    # Check if Waze Alerts are enabled - handled in wazed_thread now
+    # This function is only called when alerts are enabled
     current_time = time.time()
 
     # For debugging - log that we're checking for alerts
-    logger.info(f"Checking for alerts at lat={self.current_lat:.6f}, lon={self.current_lon:.6f}")
+    logger.debug(f"Checking for alerts at lat={self.current_lat:.6f}, lon={self.current_lon:.6f}")
 
     # Skip if we don't have valid location data
     if self.current_lat == 0.0 and self.current_lon == 0.0:
@@ -323,7 +318,7 @@ class WazeAlertManager:
 
     # Don't check for new alerts if we're already showing one
     if self.active_alert:
-      logger.info("Already showing an alert, skipping check")
+      logger.debug("Already showing an alert, skipping check")
       return
 
     # Check each alert in the cache
@@ -363,6 +358,7 @@ class WazeAlertManager:
               "text": text,
               "distance": distance,
               "alert_type": alert.get('type', 'UNKNOWN'),
+              "subtype": alert.get('subtype', ''),
               "sound_id": sound_id,
               "uuid": alert_uuid
             }
@@ -376,7 +372,6 @@ class WazeAlertManager:
           self.publish_waze_alert_message(alert_data)
 
           # Publish onroadEvents message to trigger UI alert
-          # Log before and after to verify this is happening
           logger.warning("About to publish onroad event for alert")
           self.publish_onroad_event(EventName.wazeAlert)
           logger.warning("Published onroad event for alert")
@@ -403,12 +398,53 @@ class WazeAlertManager:
 def wazed_thread(alert_manager):
   """Background thread to fetch Waze alerts and check GPS data"""
   sm = messaging.SubMaster(['gpsLocationExternal'])
+  params = Params()
 
   # For periodic GPS logging
   last_gps_log_time = 0
   GPS_LOG_INTERVAL = 60  # Log GPS position every minute
 
+  # For checking if service is enabled
+  last_enabled_check_time = 0
+
+  # Track service enabled state for logging changes
+  service_enabled = params.get_bool("WazeAlertsEnabled")
+  logger.info(f"Wazed service starting with enabled={service_enabled}")
+
+  # Clear any active alerts at startup if the service is disabled
+  if not service_enabled:
+    alert_manager.active_alert = None
+    alert_manager.publish_waze_alert_message()
+
   while True:
+    current_time = time.time()
+
+    # Check if service is enabled periodically
+    if current_time - last_enabled_check_time >= ENABLED_CHECK_INTERVAL:
+      previous_state = service_enabled
+      service_enabled = params.get_bool("WazeAlertsEnabled")
+      last_enabled_check_time = current_time
+
+      # Log state changes
+      if service_enabled != previous_state:
+        if service_enabled:
+          logger.info("Waze Alerts service has been enabled")
+          # Reset API call time to force an update when re-enabled
+          global last_api_call_time
+          last_api_call_time = 0
+        else:
+          logger.info("Waze Alerts service has been disabled")
+          # Clear any active alerts
+          if alert_manager.active_alert:
+            alert_manager.active_alert = None
+            alert_manager.publish_waze_alert_message()
+
+    # Skip processing if service is disabled
+    if not service_enabled:
+      time.sleep(ENABLED_CHECK_INTERVAL)
+      continue
+
+    # Normal processing when enabled
     sm.update()
 
     if sm.updated['gpsLocationExternal']:
@@ -420,7 +456,6 @@ def wazed_thread(alert_manager):
       alert_manager.bearing = gps.bearingDeg if gps.bearingDeg > 0.0 else 0.0  # Use GPS bearing when available
 
       # Log GPS position periodically
-      current_time = time.time()
       if current_time - last_gps_log_time > GPS_LOG_INTERVAL:
         cloudlog.info(f"Wazed: Current position: lat={alert_manager.current_lat:.6f}, lon={alert_manager.current_lon:.6f}, bearing={alert_manager.bearing:.1f}°")
         logger.info(f"Current position: lat={alert_manager.current_lat:.6f}, lon={alert_manager.current_lon:.6f}, bearing={alert_manager.bearing:.1f}°")
