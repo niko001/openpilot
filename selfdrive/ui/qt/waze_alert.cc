@@ -101,8 +101,8 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
   int margin = 40;
   int radius = 30;
 
-  // Increased height for our alert to show all text
-  int height = this->height() * 0.28; // 28% of screen height
+  // Increase height for more spacious alerts
+  int height = this->height() * 0.35; // 35% of screen height
 
   // Calculate position at the bottom of the screen with margin
   int width = this->width() - margin * 2;
@@ -188,9 +188,13 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
     QFont titleFont("Inter", 88, QFont::Bold);
     p.setFont(titleFont);
 
-    // Title at top with more space
-    QRect titleRect(contentX, y + 20, contentWidth, 120);
-    p.drawText(titleRect, Qt::AlignLeft | Qt::AlignTop, alertTitle);
+    // Divide the content area into two equal sections for better centering
+    int titleHeight = height * 0.4; // 40% for title
+    int textHeight = height * 0.6; // 60% for text
+
+    // Title centered in the top section
+    QRect titleRect(contentX, y, contentWidth, titleHeight);
+    p.drawText(titleRect, Qt::AlignLeft | Qt::AlignVCenter, alertTitle);
 
     // Text below title with slightly smaller font for better fit
     QFont textFont("Inter", 64);
@@ -202,9 +206,9 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
       displayText += QString("\n%1 m").arg(qRound(alertDistance));
     }
 
-    // More space for the text content
-    QRect textRect(contentX, y + 150, contentWidth, height - 170);
-    p.drawText(textRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, displayText);
+    // Text centered in the bottom section
+    QRect textRect(contentX, y + titleHeight, contentWidth, textHeight);
+    p.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, displayText);
   } else {
     // Fallback to centered text if icon can't be loaded
     // Draw the title
@@ -215,9 +219,13 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
     QFont titleFont("Inter", 88, QFont::Bold);
     p.setFont(titleFont);
 
-    // Title centered at top with more space
-    QRect titleRect(x, y + 20, width, 120);
-    p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignTop, alertTitle);
+    // Divide the content area into two equal sections for better centering
+    int titleHeight = height * 0.4; // 40% for title
+    int textHeight = height * 0.6; // 60% for text
+
+    // Title centered in the top section
+    QRect titleRect(x + 20, y, width - 40, titleHeight);
+    p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignVCenter, alertTitle);
 
     // Text below title with slightly smaller font for better fit
     QFont textFont("Inter", 64);
@@ -229,8 +237,8 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
       displayText += QString("\n%1 m").arg(qRound(alertDistance));
     }
 
-    // More space for the text content
-    QRect textRect(x, y + 150, width, height - 170);
-    p.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, displayText);
+    // Text centered in the bottom section
+    QRect textRect(x + 20, y + titleHeight, width - 40, textHeight);
+    p.drawText(textRect, Qt::AlignHCenter | Qt::AlignVCenter | Qt::TextWordWrap, displayText);
   }
 }
