@@ -110,7 +110,7 @@ def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshol
 
   return angle_diff < 90 and distance <= threshold, distance
 
-def fetch_waze_alerts(lat, lon):
+def fetch_waze_alerts(lat, lon, has_internet_connection=False):
   """Fetch alerts from the Waze API using the specified coordinates as the center of the bounding box."""
   global last_api_call_time, alerts_cache, api_is_busy
 
@@ -119,6 +119,11 @@ def fetch_waze_alerts(lat, lon):
   # Only update once every WAZE_API_UPDATE_INTERVAL and ensure we're not already making an API call
   if current_time - last_api_call_time < WAZE_API_UPDATE_INTERVAL or api_is_busy:
     return alerts_cache  # Return cache even if empty (will be an empty list, not None)
+
+  # Skip API call if there's no internet connectivity
+  if not has_internet_connection:
+    logger.info("Skipping Waze API call - no internet connection")
+    return alerts_cache
 
   api_is_busy = True  # Set flag to prevent concurrent API calls
 
@@ -435,9 +440,17 @@ def initialize_default_params():
     logger.info("Creating WazeAlertsDistance parameter with default value 200")
     params.put("WazeAlertsDistance", "200")
 
+def has_internet(sm):
+  """Check if the device has internet connectivity"""
+  if not sm.updated['deviceState']:
+    return False
+
+  network_type = sm['deviceState'].networkType
+  return network_type != log.DeviceState.NetworkType.none
+
 def wazed_thread(alert_manager):
   """Background thread to fetch Waze alerts and check GPS data"""
-  sm = messaging.SubMaster(['gpsLocationExternal'])
+  sm = messaging.SubMaster(['gpsLocationExternal', 'deviceState'])
   params = Params()
 
   # For periodic GPS logging
@@ -446,6 +459,9 @@ def wazed_thread(alert_manager):
 
   # For checking if service is enabled
   last_enabled_check_time = 0
+  last_network_status = False
+  network_status_check_time = 0
+  NETWORK_STATUS_CHECK_INTERVAL = 10  # Check network status every 10 seconds
 
   # Initialize default parameters
   initialize_default_params()
@@ -504,11 +520,24 @@ def wazed_thread(alert_manager):
         logger.info(f"Current position: lat={alert_manager.current_lat:.6f}, lon={alert_manager.current_lon:.6f}, bearing={alert_manager.bearing:.1f}°")
         last_gps_log_time = current_time
 
+      # Check network status periodically
+      if current_time - network_status_check_time >= NETWORK_STATUS_CHECK_INTERVAL:
+        network_status_check_time = current_time
+        is_online = has_internet(sm)
+
+        # Log when network status changes
+        if is_online != last_network_status:
+          last_network_status = is_online
+          if is_online:
+            logger.info("Internet connection detected - Waze alerts will be updated")
+          else:
+            logger.info("No internet connection - Using cached Waze alerts only")
+
       # Only attempt to fetch Waze alerts every WAZE_API_UPDATE_INTERVAL
       elapsed_since_last_call = current_time - last_api_call_time
       if elapsed_since_last_call >= WAZE_API_UPDATE_INTERVAL and not api_is_busy:
         # Fetch Waze alerts and update the global alerts_cache
-        fetch_waze_alerts(alert_manager.current_lat, alert_manager.current_lon)
+        fetch_waze_alerts(alert_manager.current_lat, alert_manager.current_lon, last_network_status)
 
     # Check for approaching alerts
     alert_manager.check_alerts()
