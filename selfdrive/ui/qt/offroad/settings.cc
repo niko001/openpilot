@@ -206,45 +206,69 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   distanceLayout->addWidget(valueLabel);
   distanceLayout->addWidget(increaseBtn);
 
-  // Logic for button clicks
-  QObject::connect(decreaseBtn, &QPushButton::clicked, [=, &p]() {
-    int current_val = 0;
+  // Logic for button clicks - create a local Params in each lambda
+  QObject::connect(decreaseBtn, &QPushButton::clicked, [=]() {
+    Params params;
+    int current_val = 200; // Safe default
+
+    // Safely get current value
     try {
-      std::string val_str = p.get("WazeAlertsDistance");
+      std::string val_str = params.get("WazeAlertsDistance");
       if (!val_str.empty()) {
         current_val = std::stoi(val_str);
       }
     } catch (...) {
-      current_val = 200;
+      // Use default on any error
     }
 
-    // Find current index and move to previous value if possible
-    auto it = std::find(distance_values.begin(), distance_values.end(), current_val);
-    if (it != distance_values.end() && it != distance_values.begin()) {
-      int idx = std::distance(distance_values.begin(), it);
-      int new_val = distance_values[idx - 1];
-      p.put("WazeAlertsDistance", std::to_string(new_val));
+    // Find current index
+    int current_idx = 1; // Default to 200m (index 1)
+    for (int i = 0; i < distance_values.size(); i++) {
+      if (distance_values[i] == current_val) {
+        current_idx = i;
+        break;
+      }
+    }
+
+    // Decrease if not at minimum
+    if (current_idx > 0) {
+      int new_val = distance_values[current_idx - 1];
+      char distance_str[16];
+      snprintf(distance_str, sizeof(distance_str), "%d", new_val);
+      params.put("WazeAlertsDistance", distance_str);
       valueLabel->setText(QString("%1m").arg(new_val));
     }
   });
 
-  QObject::connect(increaseBtn, &QPushButton::clicked, [=, &p]() {
-    int current_val = 0;
+  QObject::connect(increaseBtn, &QPushButton::clicked, [=]() {
+    Params params;
+    int current_val = 200; // Safe default
+
+    // Safely get current value
     try {
-      std::string val_str = p.get("WazeAlertsDistance");
+      std::string val_str = params.get("WazeAlertsDistance");
       if (!val_str.empty()) {
         current_val = std::stoi(val_str);
       }
     } catch (...) {
-      current_val = 200;
+      // Use default on any error
     }
 
-    // Find current index and move to next value if possible
-    auto it = std::find(distance_values.begin(), distance_values.end(), current_val);
-    if (it != distance_values.end() && it != distance_values.end() - 1) {
-      int idx = std::distance(distance_values.begin(), it);
-      int new_val = distance_values[idx + 1];
-      p.put("WazeAlertsDistance", std::to_string(new_val));
+    // Find current index
+    int current_idx = 1; // Default to 200m (index 1)
+    for (int i = 0; i < distance_values.size(); i++) {
+      if (distance_values[i] == current_val) {
+        current_idx = i;
+        break;
+      }
+    }
+
+    // Increase if not at maximum
+    if (current_idx < distance_values.size() - 1) {
+      int new_val = distance_values[current_idx + 1];
+      char distance_str[16];
+      snprintf(distance_str, sizeof(distance_str), "%d", new_val);
+      params.put("WazeAlertsDistance", distance_str);
       valueLabel->setText(QString("%1m").arg(new_val));
     }
   });
