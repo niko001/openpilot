@@ -125,7 +125,10 @@ def fetch_permanent_hazards(lat, lon, timeout=10):
   permanent_hazards = []
   try:
     logger.info(f"Wazed: Making permanent hazards API request to {url}")
-    response = requests.get(url, timeout=timeout)
+    headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
+    }
+    response = requests.get(url, headers=headers, timeout=timeout)
     logger.info(f"Wazed: Permanent hazards response status: {response.status_code}")
 
     if response.status_code == 200:
@@ -201,7 +204,10 @@ def fetch_waze_alerts(lat, lon, has_internet_connection=False):
   try:
     logger.info(f"Wazed: Making API request to {url}")
     last_api_call_time = current_time
-    response = requests.get(url, timeout=10)
+    headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
+    }
+    response = requests.get(url, headers=headers, timeout=10)
     logger.info(f"Wazed: Response status: {response.status_code}")
 
     if response.status_code == 200:
