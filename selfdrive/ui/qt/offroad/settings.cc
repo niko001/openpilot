@@ -96,57 +96,58 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   toggles["ExperimentalMode"]->setConfirmation(true, true);
 
   // Main toggle for enabling/disabling Waze Alerts
-  auto wazeEnabled = new ParamControl("WazeAlertsEnabled",
-    tr("Enable Waze Alerts"),
-    tr("Enable the Waze alerts service to receive warnings about hazards, traffic, and police reported by other drivers."),
+  auto wazeEnabled = new ParamControl(
+    "WazeAlertsEnabled", tr("Enable Waze Alerts"),
+    tr("Enable the Waze alerts service to receive warnings about hazards, "
+      "traffic, and police reported by other drivers."),
     "../assets/waze_icon.png");
   addItem(wazeEnabled);
 
   // Alert types toggles - only enabled when the main toggle is on
   std::vector<std::tuple<QString, QString, QString, QString>> waze_toggle_defs{
-  {
-  "WazeAlertsHazards",
-  tr("Hazard Alerts"),
-  tr("Receive alerts about road hazards such as objects on the road, accidents, and construction."),
-  "../assets/waze_alert_hazard.png",
-  },
-  {
-  "WazeAlertsJams",
-  tr("Traffic Jam Alerts"),
-  tr("Receive alerts about traffic jams and slowdowns ahead."),
-  "../assets/waze_alert_jam.png",
-  },
-  {
-  "WazeAlertsAccidents",
-  tr("Accident Alerts"),
-  tr("Receive alerts about accidents on your route."),
-  "../assets/waze_alert_accident.png",
-  },
-  {
-  "WazeAlertsPolice",
-  tr("Police Alerts"),
-  tr("Receive alerts about police activity reported by other drivers."),
-  "../assets/waze_alert_police.png",
-  },
-  {
-  "WazeAlertsRoadClosed",
-  tr("Road Closed Alerts"),
-  tr("Receive alerts about road closures on your route."),
-  "../assets/waze_alert_road_closed.png",
-  },
-  {
-  "WazeAlertsSpeedCameras",
-  tr("Speed Camera Alerts"),
-  tr("Receive alerts about speed cameras ahead."),
-  "../assets/waze_alert_camera.png",
-  },
-  {
-  "WazeAlertsRedLightCameras",
-  tr("Red Light Camera Alerts"),
-  tr("Receive alerts about red light cameras at intersections."),
-  "../assets/waze_alert_camera.png",
-  }
-  };
+    {
+        "WazeAlertsHazards",
+        tr("Hazard Alerts"),
+        tr("Receive alerts about road hazards such as objects on the road, "
+          "accidents, and construction."),
+        "../assets/waze_alert_hazard.png",
+    },
+    {
+        "WazeAlertsJams",
+        tr("Traffic Jam Alerts"),
+        tr("Receive alerts about traffic jams and slowdowns ahead."),
+        "../assets/waze_alert_jam.png",
+    },
+    {
+        "WazeAlertsAccidents",
+        tr("Accident Alerts"),
+        tr("Receive alerts about accidents on your route."),
+        "../assets/waze_alert_accident.png",
+    },
+    {
+        "WazeAlertsPolice",
+        tr("Police Alerts"),
+        tr("Receive alerts about police activity reported by other drivers."),
+        "../assets/waze_alert_police.png",
+    },
+    {
+        "WazeAlertsRoadClosed",
+        tr("Road Closed Alerts"),
+        tr("Receive alerts about road closures on your route."),
+        "../assets/waze_alert_road_closed.png",
+    },
+    {
+        "WazeAlertsSpeedCameras",
+        tr("Speed Camera Alerts"),
+        tr("Receive alerts about speed cameras ahead."),
+        "../assets/waze_alert_camera.png",
+    },
+    {
+        "WazeAlertsRedLightCameras",
+        tr("Red Light Camera Alerts"),
+        tr("Receive alerts about red light cameras at intersections."),
+        "../assets/waze_alert_camera.png",
+    }};
 
   // Connect the main toggle to enable/disable child toggles
   QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [=](bool state) {
@@ -161,9 +162,8 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   toggles[param.toStdString()] = toggle;
 
   // Make the toggle dependent on the main WazeAlertsEnabled toggle
-  QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [toggle](bool state) {
-  toggle->setEnabled(state);
-  });
+  QObject::connect(wazeEnabled, &ParamControl::toggleFlipped,
+                  [toggle](bool state) { toggle->setEnabled(state); });
 
   // Initialize the toggle enabled state
   toggle->setEnabled(params.getBool("WazeAlertsEnabled"));
@@ -176,12 +176,13 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   QPixmap distanceIcon("../assets/offroad/icon_road.png");
   QLabel *iconLabel = new QLabel();
   iconLabel->setPixmap(distanceIcon.scaledToWidth(80, Qt::SmoothTransformation));
-  iconLabel->setStyleSheet("margin-left: -5px;");
+  iconLabel->setStyleSheet("margin-left: -10px;");
   distanceLayout->addWidget(iconLabel);
 
   // Add distance label
   QLabel *distanceLabel = new QLabel(tr("Alert Distance"));
-  distanceLabel->setStyleSheet("font-size: 50px; font-weight: 300; margin-left: 5px;");
+  distanceLabel->setStyleSheet(
+    "font-size: 50px; font-weight: 300; margin-left: 5px;");
   distanceLayout->addWidget(distanceLabel);
 
   distanceLayout->addStretch();
@@ -200,7 +201,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   try {
   std::string dist_str = p.get("WazeAlertsDistance");
   if (!dist_str.empty()) {
-  current_distance = std::stoi(dist_str);
+    current_distance = std::stoi(dist_str);
   }
   } catch (...) {
   current_distance = 200;
@@ -247,67 +248,67 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   // Logic for button clicks - create a local Params in each lambda
   QObject::connect(decreaseBtn, &QPushButton::clicked, [=]() {
   Params params;
-  int current_val = 200; // Safe default
+  int current_val = 200;  // Safe default
 
   // Safely get current value
   try {
-  std::string val_str = params.get("WazeAlertsDistance");
-  if (!val_str.empty()) {
-  current_val = std::stoi(val_str);
-  }
+    std::string val_str = params.get("WazeAlertsDistance");
+    if (!val_str.empty()) {
+      current_val = std::stoi(val_str);
+    }
   } catch (...) {
-  // Use default on any error
+    // Use default on any error
   }
 
   // Find current index
-  int current_idx = 1; // Default to 200m (index 1)
+  int current_idx = 1;  // Default to 200m (index 1)
   for (int i = 0; i < distance_values.size(); i++) {
-  if (distance_values[i] == current_val) {
-  current_idx = i;
-  break;
-  }
+    if (distance_values[i] == current_val) {
+      current_idx = i;
+      break;
+    }
   }
 
   // Decrease if not at minimum
   if (current_idx > 0) {
-  int new_val = distance_values[current_idx - 1];
-  char distance_str[16];
-  snprintf(distance_str, sizeof(distance_str), "%d", new_val);
-  params.put("WazeAlertsDistance", distance_str);
-  valueLabel->setText(QString("%1m").arg(new_val));
+    int new_val = distance_values[current_idx - 1];
+    char distance_str[16];
+    snprintf(distance_str, sizeof(distance_str), "%d", new_val);
+    params.put("WazeAlertsDistance", distance_str);
+    valueLabel->setText(QString("%1m").arg(new_val));
   }
   });
 
   QObject::connect(increaseBtn, &QPushButton::clicked, [=]() {
   Params params;
-  int current_val = 200; // Safe default
+  int current_val = 200;  // Safe default
 
   // Safely get current value
   try {
-  std::string val_str = params.get("WazeAlertsDistance");
-  if (!val_str.empty()) {
-  current_val = std::stoi(val_str);
-  }
+    std::string val_str = params.get("WazeAlertsDistance");
+    if (!val_str.empty()) {
+      current_val = std::stoi(val_str);
+    }
   } catch (...) {
-  // Use default on any error
+    // Use default on any error
   }
 
   // Find current index
-  int current_idx = 1; // Default to 200m (index 1)
+  int current_idx = 1;  // Default to 200m (index 1)
   for (int i = 0; i < distance_values.size(); i++) {
-  if (distance_values[i] == current_val) {
-  current_idx = i;
-  break;
-  }
+    if (distance_values[i] == current_val) {
+      current_idx = i;
+      break;
+    }
   }
 
   // Increase if not at maximum
   if (current_idx < distance_values.size() - 1) {
-  int new_val = distance_values[current_idx + 1];
-  char distance_str[16];
-  snprintf(distance_str, sizeof(distance_str), "%d", new_val);
-  params.put("WazeAlertsDistance", distance_str);
-  valueLabel->setText(QString("%1m").arg(new_val));
+    int new_val = distance_values[current_idx + 1];
+    char distance_str[16];
+    snprintf(distance_str, sizeof(distance_str), "%d", new_val);
+    params.put("WazeAlertsDistance", distance_str);
+    valueLabel->setText(QString("%1m").arg(new_val));
   }
   });
 
@@ -322,9 +323,8 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   distanceWidget->setEnabled(params.getBool("WazeAlertsEnabled"));
 
   // Link to main toggle
-  QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [=](bool state) {
-  distanceWidget->setEnabled(state);
-  });
+  QObject::connect(wazeEnabled, &ParamControl::toggleFlipped,
+                [=](bool state) { distanceWidget->setEnabled(state); });
 
 }
 
