@@ -140,44 +140,74 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
     toggle->setEnabled(params.getBool("WazeAlertsEnabled"));
   }
 
-  // Alert distance selector
-  std::vector<QString> distance_options{"100m", "200m", "300m"};
-  std::vector<QString> distance_values{"100", "200", "300"};
+  // Alert distance selector with proper error handling
+  std::vector<QString> distance_options{"100m", "200m", "300m", "400m", "500m"};
+  std::vector<QString> distance_values{"100", "200", "300", "400", "500"};
   int default_distance_idx = 1; // 200m is default (index 1)
 
-  auto distance_btn = new ButtonParamControl("WazeAlertsDistance",
-                                           tr("Alert Distance"),
-                                           tr("Set the distance at which alerts will be announced before reaching them."),
-                                           "../assets/offroad/icon_road.png",
-                                           distance_options);
-
-  // Set the current value
-  std::string current_distance = params.get("WazeAlertsDistance");
-  if (current_distance.empty()) {
-    // Default to 200m if not set
-    params.put("WazeAlertsDistance", "200");
-    distance_btn->setCheckedButton(default_distance_idx);
-  } else {
-    // Find the index of the current distance value
-    auto it = std::find(distance_values.begin(), distance_values.end(), QString::fromStdString(current_distance));
-    if (it != distance_values.end()) {
-      int idx = std::distance(distance_values.begin(), it);
-      distance_btn->setCheckedButton(idx);
-    } else {
-      // If not found, default to 200m
-      distance_btn->setCheckedButton(default_distance_idx);
-    }
+  // Initialize the WazeAlertsDistance parameter if it doesn't exist
+  Params p;
+  if (p.get("WazeAlertsDistance").empty()) {
+    p.put("WazeAlertsDistance", "200");
   }
 
-  // No need to connect - ButtonParamControl handles the parameter update internally
+  try {
+    auto distance_btn = new ButtonParamControl("WazeAlertsDistance",
+                                            tr("Alert Distance"),
+                                            tr("Set the distance at which alerts will be announced before reaching them."),
+                                            "../assets/waze_icon.png", // Using an existing icon to prevent loading errors
+                                            distance_options);
 
-  addItem(distance_btn);
-  distance_btn->setEnabled(params.getBool("WazeAlertsEnabled"));
+    // Safely get the current value with proper validation
+    std::string current_distance = p.get("WazeAlertsDistance");
 
-  // Link distance selector enabled state to main toggle
-  QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [distance_btn](bool state) {
-    distance_btn->setEnabled(state);
-  });
+    // Always ensure we have a valid default
+    bool valid_value = false;
+    int idx = default_distance_idx;
+
+    // Only attempt to find the index if we have a non-empty value
+    if (!current_distance.empty()) {
+      QString str_val = QString::fromStdString(current_distance);
+      for (int i = 0; i < distance_values.size(); i++) {
+        if (distance_values[i] == str_val) {
+          idx = i;
+          valid_value = true;
+          break;
+        }
+      }
+    }
+
+    // If the value wasn't valid, reset it to default
+    if (!valid_value) {
+      p.put("WazeAlertsDistance", "200");
+    }
+
+    // Now safely set the button with bounds checking
+    if (idx >= 0 && idx < distance_options.size()) {
+      distance_btn->setCheckedButton(idx);
+    } else {
+      distance_btn->setCheckedButton(default_distance_idx);
+    }
+
+    addItem(distance_btn);
+
+    // Safe check for WazeAlertsEnabled param
+    bool enabled = false;
+    try {
+      enabled = p.getBool("WazeAlertsEnabled");
+    } catch (...) {
+      // Default to disabled if there's an error
+    }
+    distance_btn->setEnabled(enabled);
+
+    // Link distance selector enabled state to main toggle
+    QObject::connect(wazeEnabled, &ParamControl::toggleFlipped, [distance_btn](bool state) {
+      distance_btn->setEnabled(state);
+    });
+  } catch (const std::exception &e) {
+    qWarning() << "Error creating distance selector:" << e.what();
+    // If there's an error creating the control, we'll just skip it rather than crashing
+  }
 
 
 
