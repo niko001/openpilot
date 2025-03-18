@@ -99,8 +99,8 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
   int margin = 40;
   int radius = 30;
 
-  // Fixed height for our alert - smaller than full alerts
-  int height = this->height() * 0.2; // 20% of screen height
+  // Increased height for our alert to show all text
+  int height = this->height() * 0.28; // 28% of screen height
 
   // Calculate position at the bottom of the screen with margin
   int width = this->width() - margin * 2;
@@ -144,12 +144,12 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
   QFont titleFont("Inter", 88, QFont::Bold);
   p.setFont(titleFont);
 
-  // Title centered at top
-  QRect titleRect(x, y + 20, width, 100);
+  // Title centered at top with more space
+  QRect titleRect(x, y + 20, width, 120);
   p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignTop, alertTitle);
 
-  // Text below title
-  QFont textFont("Inter", 66);
+  // Text below title with slightly smaller font for better fit
+  QFont textFont("Inter", 64);
   p.setFont(textFont);
 
   // Add distance to the description text
@@ -158,6 +158,7 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
     displayText += QString("\n%1 m").arg(qRound(alertDistance));
   }
 
-  QRect textRect(x, y + 100, width, height - 120);
+  // More space for the text content
+  QRect textRect(x, y + 150, width, height - 170);
   p.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, displayText);
 }
