@@ -208,7 +208,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   distanceLayout->addWidget(increaseBtn);
 
   // Logic for button clicks
-  QObject::connect(decreaseBtn, &QPushButton::clicked, [=, &p, valueLabel]() {
+  QObject::connect(decreaseBtn, &QPushButton::clicked, [&p, valueLabel, =]() {
     int current_val = 0;
     try {
       std::string val_str = p.get("WazeAlertsDistance");
