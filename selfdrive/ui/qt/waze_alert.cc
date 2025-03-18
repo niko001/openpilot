@@ -4,7 +4,7 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QDebug>
-#include <QSvgRenderer>
+#include <QPixmap>
 
 WazeAlertOverlay::WazeAlertOverlay(QWidget *parent) : QWidget(parent) {
   // Set up timers
@@ -137,7 +137,7 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
   p.drawRoundedRect(r, radius, radius);
   p.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
-  // Get the appropriate SVG file based on alert type
+  // Get the appropriate icon file based on alert type
   QString iconPath = ":/waze_alert_hazard.svg"; // Default to hazard icon
   if (alertType == "POLICE") {
     iconPath = ":/waze_alert_police.svg";
@@ -148,16 +148,18 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
   }
 
   // Draw the icon on the left side
-  QSvgRenderer svgRenderer(iconPath);
-  if (svgRenderer.isValid()) {
+  QPixmap icon(iconPath);
+  if (!icon.isNull()) {
     // Calculate icon position (left side, vertically centered)
     int iconSize = height * 0.7; // 70% of the height
     int iconX = x + 40; // Left margin within alert box
     int iconY = y + (height - iconSize) / 2; // Vertically centered
 
-    QRectF iconRect(iconX, iconY, iconSize, iconSize);
-    svgRenderer.setAspectRatioMode(Qt::KeepAspectRatio);
-    svgRenderer.render(&p, iconRect);
+    // Scale the pixmap to the desired size while maintaining aspect ratio
+    QPixmap scaledIcon = icon.scaled(iconSize, iconSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    // Draw the pixmap
+    p.drawPixmap(iconX, iconY, scaledIcon);
 
     // Adjust the content area to leave space for the icon
     int contentX = iconX + iconSize + 30; // Icon width + spacing
