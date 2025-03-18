@@ -228,7 +228,7 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
     p.drawText(titleRect, Qt::AlignHCenter | Qt::AlignVCenter, alertTitle);
 
     // Text below title with slightly smaller font for better fit
-    QFont textFont("Inter", 55);
+    QFont textFont("Inter", 50);
     p.setFont(textFont);
 
     // Add distance to the description text
