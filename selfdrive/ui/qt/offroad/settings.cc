@@ -144,10 +144,10 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   QHBoxLayout *distanceLayout = new QHBoxLayout();
 
   // Add icon
-  QPixmap distanceIcon("../assets/waze_icon.png");
+  QPixmap distanceIcon("../assets/offroad/icon_road.png");
   QLabel *iconLabel = new QLabel();
   iconLabel->setPixmap(distanceIcon.scaledToWidth(80, Qt::SmoothTransformation));
-  iconLabel->setStyleSheet("margin-left: 15px;");
+  iconLabel->setStyleSheet("margin-left: 5px;");
   distanceLayout->addWidget(iconLabel);
 
   // Add distance label
