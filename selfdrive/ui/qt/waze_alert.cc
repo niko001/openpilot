@@ -202,9 +202,9 @@ void WazeAlertOverlay::paintEvent(QPaintEvent *event) {
 
     // Add distance to the description text
     QString displayText = alertText;
-    if (alertDistance > 0) {
-      displayText += QString("\n%1 m").arg(qRound(alertDistance));
-    }
+    //if (alertDistance > 0) {
+    //  displayText += QString("\n%1 m").arg(qRound(alertDistance));
+    //}
 
     // Text centered in the bottom section
     QRect textRect(contentX, y + titleHeight, contentWidth, textHeight);
