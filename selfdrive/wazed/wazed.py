@@ -6,7 +6,12 @@ import threading
 import requests
 import logging
 import queue
+import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 import cereal.messaging as messaging
 from cereal import log
@@ -55,6 +60,7 @@ last_alerted_uuids = set()  # To prevent showing the same alert multiple times i
 api_is_busy = False  # Flag to prevent concurrent API calls
 current_alert = None  # Currently active alert
 alert_start_time = 0  # When the current alert started showing
+geocoding_cache = {}  # Cache for geocoding results to avoid repeated API calls
 
 def safe_get_bool(params, key, default=False):
   """Safely gets a boolean parameter with a default value if the key doesn't exist."""
@@ -110,8 +116,90 @@ def is_approaching(car_lat, car_lon, car_bearing, alert_lat, alert_lon, threshol
 
   return angle_diff < 90 and distance <= threshold, distance
 
+def get_street_from_google_geocoding(lat, lon, api_key, timeout=5):
+  """Get street address information from Google's Reverse Geocoding API."""
+  global geocoding_cache
+
+  cache_key = f"{lat},{lon}"
+
+  # Check if we have this result in the cache
+  if cache_key in geocoding_cache:
+    logger.debug(f"Wazed: Using cached street info for location lat={lat}, lon={lon}")
+    return geocoding_cache[cache_key]
+
+  try:
+    # Construct the URL with parameters
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lon}&key={api_key}&language=de&result_type=street_address|route"
+
+    headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
+    }
+
+    logger.debug(f"Wazed: Making Google Geocoding API request for location lat={lat}, lon={lon}")
+    response = requests.get(url, headers=headers, timeout=timeout)
+
+    if response.status_code == 200:
+      data = response.json()
+      if data.get("status") == "OK" and data.get("results") and len(data["results"]) > 0:
+        # Get the first result (most relevant)
+        result = data["results"][0]
+
+        # Extract address components
+        street_name = ""
+        street_number = ""
+
+        # Find road/route and street number
+        for component in result.get("address_components", []):
+          if "route" in component.get("types", []):
+            street_name = component.get("long_name", "")
+          elif "street_number" in component.get("types", []):
+            street_number = component.get("long_name", "")
+
+        # Combine for full street address
+        if street_name and street_number:
+          full_address = f"{street_name} {street_number}"
+        else:
+          full_address = street_name
+
+        logger.debug(f"Wazed: Found street information: {full_address}")
+
+        # Cache the result
+        geocoding_cache[cache_key] = full_address
+
+        # Keep cache size reasonable (max 500 entries)
+        if len(geocoding_cache) > 500:
+          # Remove a random key (simple approach to manage cache size)
+          try:
+            geocoding_cache.pop(next(iter(geocoding_cache)))
+          except:
+            # Just clear a few entries if there's an issue
+            for _ in range(min(10, len(geocoding_cache))):
+              try:
+                geocoding_cache.pop(next(iter(geocoding_cache)))
+              except:
+                pass
+
+        return full_address
+      else:
+        logger.debug(f"Wazed: Google Geocoding API did not return usable results: {data.get('status')}")
+    else:
+      logger.warning(f"Wazed: Non-200 response from Google Geocoding API: {response.status_code}")
+  except Exception as e:
+    logger.error(f"Wazed: Error getting street information from Google: {e}")
+
+  # Cache empty result to avoid repeated failed lookups
+  geocoding_cache[cache_key] = ""
+  return ""  # Return empty string if no info found
+
 def fetch_permanent_hazards(lat, lon, timeout=10):
   """Fetch permanent hazards like speed cameras and red light cameras from the Waze API."""
+  # Get Google Maps API key from environment variables
+  GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+
+  if not GOOGLE_MAPS_API_KEY:
+    logger.error("Wazed: Google Maps API key not found in environment variables!")
+    return []
+
   # Calculate bounding box
   half_width = BOUNDING_BOX_WIDTH / 2
   top = lat + half_width
@@ -146,8 +234,18 @@ def fetch_permanent_hazards(lat, lon, timeout=10):
                 coords = obj["geometry"]["coordinates"]
                 location = {"x": coords[0], "y": coords[1]}  # x is longitude, y is latitude
 
+                # Get street information from Google Maps API
+                street_info = get_street_from_google_geocoding(
+                  location["y"],  # latitude
+                  location["x"],  # longitude
+                  GOOGLE_MAPS_API_KEY
+                )
+
               # Generate a unique ID for this camera
               uuid = f"cam-{obj.get('id', idx)}"
+
+              # Use Google's street info if available, fall back to Waze data if not
+              street = street_info if street_info else obj.get("name", "")
 
               # Create alert in the same format as regular alerts
               alert = {
@@ -155,8 +253,8 @@ def fetch_permanent_hazards(lat, lon, timeout=10):
                 "subtype": camera_type,
                 "location": location,
                 "uuid": uuid,
-                "street": obj.get("name", ""),
-                "reportDescription": "",
+                "street": street,
+                "reportDescription": f"{camera_type.replace('_', ' ')} Camera",
                 "isPermanent": True
               }
               permanent_hazards.append(alert)
