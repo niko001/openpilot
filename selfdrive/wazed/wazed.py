@@ -547,7 +547,7 @@ def has_internet(sm):
 
 def wazed_thread(alert_manager):
   """Background thread to fetch Waze alerts and check GPS data"""
-  sm = messaging.SubMaster(['gpsLocationExternal', 'deviceState'])
+  sm = messaging.SubMaster(['gpsLocation', 'deviceState'])
   params = Params()
 
   # For periodic GPS logging
@@ -603,8 +603,8 @@ def wazed_thread(alert_manager):
     # Normal processing when enabled
     sm.update()
 
-    if sm.updated['gpsLocationExternal']:
-      gps = sm['gpsLocationExternal']
+    if sm.updated['gpsLocation']:
+      gps = sm['gpsLocation']
 
       # Get the car's position and bearing
       alert_manager.current_lat = gps.latitude
