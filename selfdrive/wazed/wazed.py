@@ -8,10 +8,34 @@ import logging
 import queue
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Set up logging first
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("wazed")
+
+# Simple function to read .env file manually instead of using python-dotenv
+def read_env_file(file_path='.env'):
+  env_vars = {}
+  try:
+    if os.path.exists(file_path):
+      with open(file_path, 'r') as f:
+        for line in f:
+          line = line.strip()
+          if line and not line.startswith('#'):
+            key_value = line.split('=', 1)
+            if len(key_value) == 2:
+              key, value = key_value
+              env_vars[key.strip()] = value.strip().strip('"\'')
+      logger.info(f"Loaded {len(env_vars)} environment variables from {file_path}")
+    else:
+      logger.warning(f"Environment file {file_path} not found")
+  except Exception as e:
+    logger.error(f"Error reading environment file: {e}")
+
+  return env_vars
+
+# Read environment variables
+ENV = read_env_file()
 
 import cereal.messaging as messaging
 from cereal import log
@@ -27,10 +51,6 @@ WAZE_ALERT_POLICE = 13
 WAZE_ALERT_ROAD_CLOSED = 14
 WAZE_ALERT_SPEED_CAMERA = 15
 WAZE_ALERT_REDLIGHT_CAMERA = 16
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("wazed")
 
 # Constants for the Waze alerts module
 WAZE_API_UPDATE_INTERVAL = 120  # Update every 2 minutes (in seconds)
@@ -194,7 +214,7 @@ def get_street_from_google_geocoding(lat, lon, api_key, timeout=5):
 def fetch_permanent_hazards(lat, lon, timeout=10):
   """Fetch permanent hazards like speed cameras and red light cameras from the Waze API."""
   # Get Google Maps API key from environment variables
-  GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+  GOOGLE_MAPS_API_KEY = ENV.get("GOOGLE_MAPS_API_KEY", "")
 
   if not GOOGLE_MAPS_API_KEY:
     logger.error("Wazed: Google Maps API key not found in environment variables!")
