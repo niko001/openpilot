@@ -413,7 +413,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     )");
     btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     nav_btns->addButton(btn);
-    sidebar_layout->addWidget(btn, 0, Qt::AlignRight);
+    sidebar_layout->addWidget(btn, 0, Qt::AlignLeft);
 
     const int lr_margin = name != tr("Network") ? 50 : 0;  // Network panel handles its own margins
     panel->setContentsMargins(lr_margin, 25, lr_margin, 25);
