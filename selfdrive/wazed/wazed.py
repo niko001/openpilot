@@ -34,8 +34,8 @@ def read_env_file(file_path='.env'):
 
   return env_vars
 
-# Read environment variables
-ENV = read_env_file()
+# Read environment variables with correct path
+ENV = read_env_file(os.path.join(os.path.dirname(__file__), '.env'))
 
 import cereal.messaging as messaging
 from cereal import log
