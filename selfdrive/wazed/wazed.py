@@ -156,7 +156,7 @@ def fetch_permanent_hazards(lat, lon, timeout=10):
                 "location": location,
                 "uuid": uuid,
                 "street": obj.get("name", ""),
-                "reportDescription": f"{camera_type.replace('_', ' ')} Camera",
+                "reportDescription": "",
                 "isPermanent": True
               }
               permanent_hazards.append(alert)
@@ -301,9 +301,9 @@ def get_alert_text(alert):
   # Add permanent indicator for fixed cameras
   if is_permanent and alert_type == "CAMERA":
     if text:
-      text += "\n(Fixed Camera)"
+      text += "\nFixed Camera"
     else:
-      text = "(Fixed Camera)"
+      text = "Fixed Camera"
 
   return title, text
 
