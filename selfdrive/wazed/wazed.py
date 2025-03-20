@@ -656,12 +656,21 @@ def initialize_default_params():
     params.put("WazeAlertsDistance", "200")
 
 def has_internet(sm):
-  """Check if the device has internet connectivity"""
+  """Check if the device has internet connectivity, using the same method as the UI"""
   if not sm.updated['deviceState']:
     return False
 
-  network_type = sm['deviceState'].networkType
-  return network_type != log.DeviceState.NetworkType.none
+  # Match the UI's connectivity check based on the last Athena ping time
+  device_state = sm['deviceState']
+  last_ping = device_state.lastAthenaPingTime
+
+  # If last_ping is 0, device has never connected
+  if last_ping == 0:
+    return False
+
+  # Consider connected if last ping was less than 80 seconds ago (80e9 nanoseconds)
+  # This matches the logic in selfdrive/ui/qt/sidebar.cc
+  return (sm.frame * 1e9) - last_ping < 80e9
 
 def wazed_thread(alert_manager):
   """Background thread to fetch Waze alerts and check GPS data"""
