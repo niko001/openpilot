@@ -98,3 +98,13 @@ private:
   Params params;
   ParamWatcher *fs_watch;
 };
+
+class WazePanel : public ListWidget {
+  Q_OBJECT
+public:
+  explicit WazePanel(SettingsWindow *parent);
+
+private:
+  Params params;
+  std::map<std::string, ParamControl*> toggles;
+};
