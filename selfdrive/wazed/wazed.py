@@ -274,7 +274,7 @@ def fetch_permanent_hazards(lat, lon, timeout=10):
                 "location": location,
                 "uuid": uuid,
                 "street": street,
-                "reportDescription": f"{camera_type.replace('_', ' ')} Camera",
+                "reportDescription": "",
                 "isPermanent": True
               }
               permanent_hazards.append(alert)
