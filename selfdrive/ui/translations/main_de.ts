@@ -132,7 +132,7 @@
     <translation>WARNUNG: Die openpilot Längsregelung befindet sich für dieses Fahrzeug im Alpha-Stadium und deaktiviert das automatische Notbremsen (AEB).</translation>
 </message>
 <message>
-    <source>On this car, openpilot defaults to the car's built-in ACC instead of openpilot's longitudinal control. Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.</source>
+    <source>On this car, openpilot defaults to the car&apos;s built-in ACC instead of openpilot&apos;s longitudinal control. Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.</source>
     <translation>Bei diesem Fahrzeug verwendet openpilot standardmäßig den eingebauten Tempomaten anstelle der openpilot Längsregelung. Aktiviere diese Option, um auf die openpilot Längsregelung umzuschalten. Es wird empfohlen, den experimentellen Modus zu aktivieren, wenn die openpilot Längsregelung (Alpha) aktiviert wird.</translation>
 </message>
 <message>
@@ -314,7 +314,7 @@
 <message>
     <source>openpilot learns to drive by watching humans, like you, drive.
 
-Firehose Mode allows you to maximize your training data uploads to improve openpilot's driving models. More data means bigger models, which means better Experimental Mode.</source>
+Firehose Mode allows you to maximize your training data uploads to improve openpilot&apos;s driving models. More data means bigger models, which means better Experimental Mode.</source>
     <translation>openpilot lernt das Fahren, indem es Menschen wie dir beim Fahren zuschaut.
 
 Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximieren, um die Fahrmodelle von openpilot zu verbessern. Mehr Daten bedeuten größere Modelle, was zu einem besseren Experimentellen Modus führt.</translation>
@@ -328,19 +328,19 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
     <translation>AKTIV</translation>
 </message>
 <message>
-    <source>For maximum effectiveness, bring your device inside and connect to a good USB-C adapter and Wi-Fi weekly.<br><br>Firehose Mode can also work while you're driving if connected to a hotspot or unlimited SIM card.<br><br><br><b>Frequently Asked Questions</b><br><br><i>Does it matter how or where I drive?</i> Nope, just drive as you normally would.<br><br><i>Do all of my segments get pulled in Firehose Mode?</i> No, we selectively pull a subset of your segments.<br><br><i>What's a good USB-C adapter?</i> Any fast phone or laptop charger should be fine.<br><br><i>Does it matter which software I run?</i> Yes, only upstream openpilot (and particular forks) are able to be used for training.</source>
-    <translation>Für maximale Effektivität bringe dein Gerät regelmäßig ins Haus und verbinde es wöchentlich mit einem guten USB-C-Adapter und WLAN. Firehose-Modus funktioniert auch während der Fahrt, wenn du mit einem Hotspot oder einer ungedrosselten SIM-Karte verbunden bist.<br><br><br><b>Häufig gestellte Fragen</b><br><br><i>Ist es wichtig, wie oder wo ich fahre?</i> Nein, fahre einfach wie gewohnt.<br><br><i>Werden alle meine Segmente im Firehose-Modus hochgeladen?</i> Nein, es wird eine Auswahl deiner Segmente hochgeladen.<br><br><i>Welcher USB-C-Adapter ist geeignet?</i> Jedes Handy- oder Laptop-Schnellladegerät sollte ausreichend sein.<br><br><i>Ist es wichtig, welche Software ich benutze?</i> Ja, nur das offizielle openpilot (und bestimmte Forks) können für das Training verwendet werden.</translation>
+    <source>For maximum effectiveness, bring your device inside and connect to a good USB-C adapter and Wi-Fi weekly.&lt;br&gt;&lt;br&gt;Firehose Mode can also work while you&apos;re driving if connected to a hotspot or unlimited SIM card.&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Frequently Asked Questions&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;Does it matter how or where I drive?&lt;/i&gt; Nope, just drive as you normally would.&lt;br&gt;&lt;br&gt;&lt;i&gt;Do all of my segments get pulled in Firehose Mode?&lt;/i&gt; No, we selectively pull a subset of your segments.&lt;br&gt;&lt;br&gt;&lt;i&gt;What&apos;s a good USB-C adapter?&lt;/i&gt; Any fast phone or laptop charger should be fine.&lt;br&gt;&lt;br&gt;&lt;i&gt;Does it matter which software I run?&lt;/i&gt; Yes, only upstream openpilot (and particular forks) are able to be used for training.</source>
+    <translation>Für maximale Effektivität bring dein Gerät jede Woche nach drinnen und verbinde es mit einem guten USB-C-Adapter und WLAN.&lt;br&gt;&lt;br&gt;Der Firehose-Modus funktioniert auch während der Fahrt, wenn das Gerät mit einem Hotspot oder einer ungedrosselten SIM-Karte verbunden ist.&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Häufig gestellte Fragen&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;i&gt;Spielt es eine Rolle, wie oder wo ich fahre?&lt;/i&gt; Nein, fahre einfach wie gewohnt.&lt;br&gt;&lt;br&gt;&lt;i&gt;Werden im Firehose-Modus alle meine Segmente hochgeladen?&lt;/i&gt; Nein, wir wählen selektiv nur einen Teil deiner Segmente aus.&lt;br&gt;&lt;br&gt;&lt;i&gt;Welcher USB-C-Adapter ist gut?&lt;/i&gt; Jedes Schnellladegerät für Handy oder Laptop sollte ausreichen.&lt;br&gt;&lt;br&gt;&lt;i&gt;Spielt es eine Rolle, welche Software ich nutze?&lt;/i&gt; Ja, nur das offizielle Upstream‑openpilot (und bestimmte Forks) kann für das Training verwendet werden.</translation>
 </message>
 <message numerus="yes">
-    <source><b>%n segment(s)</b> of your driving is in the training dataset so far.</source>
+    <source>&lt;b&gt;%n segment(s)&lt;/b&gt; of your driving is in the training dataset so far.</source>
     <translation>
-        <numerusform><b>%n Segment</b> deiner Fahrten ist bisher im Trainingsdatensatz.</numerusform>
-        <numerusform><b>%n Segmente</b> deiner Fahrten sind bisher im Trainingsdatensatz.</numerusform>
+        <numerusform>&lt;b&gt;%n Segment&lt;/b&gt; deiner Fahrten ist bisher im Trainingsdatensatz.</numerusform>
+        <numerusform>&lt;b&gt;%n Segmente&lt;/b&gt; deiner Fahrten sind bisher im Trainingsdatensatz.</numerusform>
     </translation>
 </message>
 <message>
-    <source><span stylesheet='font-size: 60px; font-weight: bold; color: #e74c3c;'>INACTIVE</span>: connect to an unmetered network</source>
-    <translation><span stylesheet='font-size: 60px; font-weight: bold; color: #e74c3c;'>INAKTIV</span>: Verbinde dich mit einem ungedrosselten Netzwerk</translation>
+    <source>&lt;span stylesheet=&apos;font-size: 60px; font-weight: bold; color: #e74c3c;&apos;&gt;INACTIVE&lt;/span&gt;: connect to an unmetered network</source>
+    <translation>&lt;span stylesheet=&apos;font-size: 60px; font-weight: bold; color: #e74c3c;&apos;&gt;INAKTIV&lt;/span&gt;: Verbinde dich mit einem ungedrosselten Netzwerk</translation>
 </message>
 </context>
 <context>
@@ -426,11 +426,11 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
 %1</translation>
 </message>
 <message>
-    <source>Taking camera snapshots. System won't start until finished.</source>
+    <source>Taking camera snapshots. System won&apos;t start until finished.</source>
     <translation>Kamera-Snapshots werden aufgenommen. Das System startet erst, wenn dies abgeschlossen ist.</translation>
 </message>
 <message>
-    <source>An update to your device's operating system is downloading in the background. You will be prompted to update when it's ready to install.</source>
+    <source>An update to your device&apos;s operating system is downloading in the background. You will be prompted to update when it&apos;s ready to install.</source>
     <translation>Ein Update für das Betriebssystem deines Geräts wird im Hintergrund heruntergeladen. Du wirst aufgefordert, das Update zu installieren, sobald es bereit ist.</translation>
 </message>
 <message>
@@ -450,7 +450,7 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
     <translation>openpilot konnte dein Auto nicht identifizieren. Dein Auto wird entweder nicht unterstützt oder die Steuergeräte (ECUs) werden nicht erkannt. Bitte reiche einen Pull Request ein, um die Firmware-Versionen für das richtige Fahrzeug hinzuzufügen. Hilfe findest du auf discord.comma.ai.</translation>
 </message>
 <message>
-    <source>openpilot detected a change in the device's mounting position. Ensure the device is fully seated in the mount and the mount is firmly secured to the windshield.</source>
+    <source>openpilot detected a change in the device&apos;s mounting position. Ensure the device is fully seated in the mount and the mount is firmly secured to the windshield.</source>
     <translation>openpilot hat eine Änderung der Montageposition des Geräts erkannt. Stelle sicher, dass das Gerät vollständig in der Halterung sitzt und die Halterung fest an der Windschutzscheibe befestigt ist.</translation>
 </message>
 <message>
@@ -1007,8 +1007,8 @@ Dies kann bis zu einer Minute dauern.</translation>
     <translation>Willkommen bei openpilot</translation>
 </message>
 <message>
-    <source>You must accept the Terms and Conditions to use openpilot. Read the latest terms at <span style='color: #465BEA;'>https://comma.ai/terms</span> before continuing.</source>
-    <translation>Du musst die Nutzungsbedingungen akzeptieren, um openpilot zu verwenden. Lies die aktuellen Bedingungen unter <span style='color: #465BEA;'>https://comma.ai/terms</span>, bevor du fortfährst.</translation>
+    <source>You must accept the Terms and Conditions to use openpilot. Read the latest terms at &lt;span style=&apos;color: #465BEA;&apos;&gt;https://comma.ai/terms&lt;/span&gt; before continuing.</source>
+    <translation>Du musst die Nutzungsbedingungen akzeptieren, um openpilot zu verwenden. Lies die aktuellen Bedingungen unter &lt;span style=&apos;color: #465BEA;&apos;&gt;https://comma.ai/terms&lt;/span&gt;, bevor du fortfährst.</translation>
 </message>
 </context>
 <context>
@@ -1164,12 +1164,12 @@ Dies kann bis zu einer Minute dauern.</translation>
     <translation>Öffnen</translation>
 </message>
 <message>
-    <source>Maximize your training data uploads to improve openpilot's driving models.</source>
+    <source>Maximize your training data uploads to improve openpilot&apos;s driving models.</source>
     <translation>Maximiere deine Trainingsdaten-Uploads, um die Fahrmodelle von openpilot zu verbessern.</translation>
 </message>
 <message>
-    <source><span style='font-family: "Noto Color Emoji";'>🔥</span> Firehose Mode <span style='font-family: Noto Color Emoji;'>🔥</span></source>
-    <translation><span style='font-family: "Noto Color Emoji";'>🔥</span> Firehose-Modus <span style='font-family: Noto Color Emoji;'>🔥</span></translation>
+    <source>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehose Mode &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</source>
+    <translation>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehose-Modus &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</translation>
 </message>
 </context>
 <context>
