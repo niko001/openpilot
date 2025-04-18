@@ -9,6 +9,7 @@ from opendbc.car.fingerprints import MIGRATION
 from opendbc.car.toyota.values import EPS_SCALE, ToyotaSafetyFlags
 from opendbc.car.ford.values import CAR as FORD, FordFlags, FordSafetyFlags
 from opendbc.car.hyundai.values import HyundaiSafetyFlags
+from opendbc.car.gm.values import GMSafetyFlags
 from openpilot.selfdrive.modeld.constants import ModelConstants
 from openpilot.selfdrive.modeld.fill_model_msg import fill_xyz_poly, fill_lane_line_meta
 from openpilot.selfdrive.test.process_replay.vision_meta import meta_from_encode_index
@@ -241,14 +242,16 @@ def migrate_gpsLocation(msgs):
 
 @migration(inputs=["deviceState", "initData"])
 def migrate_deviceState(msgs):
+  init_data = next((m.initData for _, m in msgs if m.which() == 'initData'), None)
+  device_state = next((m.deviceState for _, m in msgs if m.which() == 'deviceState'), None)
+  if init_data is None or device_state is None:
+    return [], [], []
+
   ops = []
-  dt = None
   for i, msg in msgs:
-    if msg.which() == 'initData':
-      dt = msg.initData.deviceType
     if msg.which() == 'deviceState':
       n = msg.as_builder()
-      n.deviceState.deviceType = dt
+      n.deviceState.deviceType = init_data.deviceType
       ops.append((i, n.as_reader()))
   return ops, [], []
 
@@ -272,9 +275,11 @@ def migrate_pandaStates(msgs):
     "TOYOTA_PRIUS": EPS_SCALE["TOYOTA_PRIUS"] | ToyotaSafetyFlags.STOCK_LONGITUDINAL,
     "TOYOTA_RAV4": EPS_SCALE["TOYOTA_RAV4"] | ToyotaSafetyFlags.ALT_BRAKE,
     "KIA_EV6": HyundaiSafetyFlags.EV_GAS | HyundaiSafetyFlags.CANFD_LKA_STEERING,
+    "CHEVROLET_VOLT": GMSafetyFlags.EV,
+    "CHEVROLET_BOLT_EUV": GMSafetyFlags.EV | GMSafetyFlags.HW_CAM,
   }
   # TODO: get new Ford route
-  safety_param_migration |= {car: FordSafetyFlags.LONG_CONTROL for car in (set(FORD) - FORD.with_flags(FordFlags.CANFD))}
+  safety_param_migration |= dict.fromkeys((set(FORD) - FORD.with_flags(FordFlags.CANFD)), FordSafetyFlags.LONG_CONTROL)
 
   # Migrate safety param base on carParams
   CP = next((m.carParams for _, m in msgs if m.which() == 'carParams'), None)
