@@ -127,8 +127,10 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     espActive @90;
     personalityChanged @91;
     aeb @92;
-    wazeAlert @94;
+    radarTempUnavailable @93;
+    steerDisengage @94;
     userFlag @95;
+    wazeAlert @96;
 
     soundsUnavailableDEPRECATED @47;
   }
