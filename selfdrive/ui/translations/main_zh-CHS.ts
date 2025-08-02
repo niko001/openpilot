@@ -8,10 +8,6 @@
         <translation>关闭</translation>
     </message>
     <message>
-        <source>Snooze Update</source>
-        <translation>暂停更新</translation>
-    </message>
-    <message>
         <source>Reboot and Update</source>
         <translation>重启并更新</translation>
     </message>
@@ -308,27 +304,35 @@
     </message>
     <message>
         <source>openpilot requires the device to be mounted within 4° left or right and within 5° up or 9° down.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Steering lag calibration is %1% complete.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Steering lag calibration is complete.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Steering torque response calibration is %1% complete.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Steering torque response calibration is complete.</source>
-        <translation type="unfinished"></translation>
+        <translation>openpilot 要求设备的安装角度：左右偏移需在 4° 以内，上下俯仰角度需在向上 5° 至向下 9° 的范围内。</translation>
     </message>
     <message>
         <source>openpilot is continuously calibrating, resetting is rarely required. Resetting calibration will restart openpilot if the car is powered on.</source>
-        <translation type="unfinished"></translation>
+        <translation>openpilot 会持续进行校准，因此很少需要重置。如果车辆电源已开启，重置校准会重新启动 openpilot。</translation>
+    </message>
+    <message>
+        <source>
+
+Steering lag calibration is %1% complete.</source>
+        <translation>
+
+转向延迟校准已完成 %1%。</translation>
+    </message>
+    <message>
+        <source>
+
+Steering lag calibration is complete.</source>
+        <translation>
+
+转向延迟校准已完成。</translation>
+    </message>
+    <message>
+        <source> Steering torque response calibration is %1% complete.</source>
+        <translation> 转向扭矩响应校准已完成 %1%。</translation>
+    </message>
+    <message>
+        <source> Steering torque response calibration is complete.</source>
+        <translation> 转向扭矩响应校准已完成。</translation>
     </message>
 </context>
 <context>
@@ -357,11 +361,11 @@
 Firehose Mode allows you to maximize your training data uploads to improve openpilot&apos;s driving models. More data means bigger models, which means better Experimental Mode.</source>
         <translation>openpilot 通过观察人类驾驶（包括您）来学习如何驾驶。
 
-“训练数据上传模式”允许您最大化上传训练数据，以改进 openpilot 的驾驶模型。更多数据意味着更强大的模型，也就意味着更优秀的“实验模式”。</translation>
+“Firehose 模式”允许您最大化上传训练数据，以改进 openpilot 的驾驶模型。更多数据意味着更强大的模型，也就意味着更优秀的“实验模式”。</translation>
     </message>
     <message>
         <source>Firehose Mode: ACTIVE</source>
-        <translation>训练数据上传模式：激活中</translation>
+        <translation>Firehose 模式：激活中</translation>
     </message>
     <message>
         <source>ACTIVE</source>
@@ -383,7 +387,7 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     </message>
     <message>
         <source>Firehose Mode</source>
-        <translation type="unfinished"></translation>
+        <translation>Firehose 模式</translation>
     </message>
 </context>
 <context>
@@ -469,16 +473,8 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>一个针对您设备的操作系统更新正在后台下载中。当更新准备好安装时，您将收到提示进行更新。</translation>
     </message>
     <message>
-        <source>Device failed to register. It will not connect to or upload to comma.ai servers, and receives no support from comma.ai. If this is an official device, visit https://comma.ai/support.</source>
-        <translation>设备注册失败。它将无法连接或上传至 comma.ai 服务器，并且无法获得 comma.ai 的支持。如果这是一个官方设备，请访问 https://comma.ai/support。</translation>
-    </message>
-    <message>
         <source>NVMe drive not mounted.</source>
         <translation>NVMe固态硬盘未被挂载。</translation>
-    </message>
-    <message>
-        <source>Unsupported NVMe drive detected. Device may draw significantly more power and overheat due to the unsupported NVMe.</source>
-        <translation>检测到不支持的 NVMe 固态硬盘。您的设备因为使用了不支持的 NVMe 固态硬盘可能会消耗更多电力并更易过热。</translation>
     </message>
     <message>
         <source>openpilot was unable to identify your car. Your car is either unsupported or its ECUs are not recognized. Please submit a pull request to add the firmware versions to the proper vehicle. Need help? Join discord.comma.ai.</source>
@@ -491,6 +487,22 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     <message>
         <source>Device temperature too high. System cooling down before starting. Current internal component temperature: %1</source>
         <translation>设备温度过高。系统正在冷却中，等冷却完毕后才会启动。目前内部组件温度：%1</translation>
+    </message>
+    <message>
+        <source>Device failed to register with the comma.ai backend. It will not connect or upload to comma.ai servers, and receives no support from comma.ai. If this is a device purchased at comma.ai/shop, open a ticket at https://comma.ai/support.</source>
+        <translation>设备未能注册到 comma.ai 后端。该设备将无法连接或上传数据到 comma.ai 服务器，也无法获得 comma.ai 的支持。如果该设备是在 comma.ai/shop 购买的，请访问 https://comma.ai/support 提交工单。</translation>
+    </message>
+    <message>
+        <source>Acknowledge Excessive Actuation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Snooze Update</source>
+        <translation type="unfinished">暂停更新</translation>
+    </message>
+    <message>
+        <source>openpilot has detected excessive %1 actuation. This may be due to a software bug. Please contact support at https://comma.ai/support.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -637,47 +649,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     </message>
 </context>
 <context>
-    <name>Reset</name>
-    <message>
-        <source>Reset failed. Reboot to try again.</source>
-        <translation>重置失败。 重新启动以重试。</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to reset your device?</source>
-        <translation>您确定要重置您的设备吗？</translation>
-    </message>
-    <message>
-        <source>System Reset</source>
-        <translation>恢复出厂设置</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>取消</translation>
-    </message>
-    <message>
-        <source>Reboot</source>
-        <translation>重启</translation>
-    </message>
-    <message>
-        <source>Confirm</source>
-        <translation>确认</translation>
-    </message>
-    <message>
-        <source>Unable to mount data partition. Partition may be corrupted. Press confirm to erase and reset your device.</source>
-        <translation>无法挂载数据分区。分区可能已经损坏。请确认是否要删除并重新设置。</translation>
-    </message>
-    <message>
-        <source>Resetting device...
-This may take up to a minute.</source>
-        <translation>设备重置中…
-这可能需要一分钟的时间。</translation>
-    </message>
-    <message>
-        <source>System reset triggered. Press confirm to erase all content and settings. Press cancel to resume boot.</source>
-        <translation>系统重置已触发。按下“确认”以清除所有内容和设置，按下“取消”以继续启动。</translation>
-    </message>
-</context>
-<context>
     <name>SettingsWindow</name>
     <message>
         <source>×</source>
@@ -705,7 +676,7 @@ This may take up to a minute.</source>
     </message>
     <message>
         <source>Firehose</source>
-        <translation>训练上传</translation>
+        <translation>Firehose</translation>
     </message>
 </context>
 <context>
@@ -804,13 +775,15 @@ This may take up to a minute.</source>
     </message>
     <message>
         <source>WARNING: Custom Software</source>
-        <translation type="unfinished"></translation>
+        <translation>警告：自定义软件</translation>
     </message>
     <message>
         <source>Use caution when installing third-party software. Third-party software has not been tested by comma, and may cause damage to your device and/or vehicle.
 
 If you&apos;d like to proceed, use https://flash.comma.ai to restore your device to a factory state later.</source>
-        <translation type="unfinished"></translation>
+        <translation>请谨慎安装第三方软件。第三方软件未经 comma 测试，可能会损害您的设备和车辆。
+
+如果您决定继续，后续可通过 https://flash.comma.ai 将设备恢复到出厂状态。</translation>
     </message>
 </context>
 <context>
@@ -1155,42 +1128,15 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
     </message>
     <message>
         <source> Changing this setting will restart openpilot if the car is powered on.</source>
-        <translation>如果车辆已通电，更改此设置将会重新启动 openpilot。</translation>
-    </message>
-</context>
-<context>
-    <name>Updater</name>
-    <message>
-        <source>Update Required</source>
-        <translation>需要更新</translation>
+        <translation> 如果车辆已通电，更改此设置将会重新启动 openpilot。</translation>
     </message>
     <message>
-        <source>An operating system update is required. Connect your device to Wi-Fi for the fastest update experience. The download size is approximately 1GB.</source>
-        <translation>操作系统需要更新。请将您的设备连接到WiFi以获取更快的更新体验。下载大小约为1GB。</translation>
+        <source>Record and Upload Microphone Audio</source>
+        <translation>录制并上传麦克风音频</translation>
     </message>
     <message>
-        <source>Connect to Wi-Fi</source>
-        <translation>连接到WiFi</translation>
-    </message>
-    <message>
-        <source>Install</source>
-        <translation>安装</translation>
-    </message>
-    <message>
-        <source>Back</source>
-        <translation>返回</translation>
-    </message>
-    <message>
-        <source>Loading...</source>
-        <translation>正在加载……</translation>
-    </message>
-    <message>
-        <source>Reboot</source>
-        <translation>重启</translation>
-    </message>
-    <message>
-        <source>Update failed</source>
-        <translation>更新失败</translation>
+        <source>Record and store microphone audio while driving. The audio will be included in the dashcam video in comma connect.</source>
+        <translation>在驾驶时录制并存储麦克风音频。该音频将会包含在 comma connect 的行车记录仪视频中。</translation>
     </message>
 </context>
 <context>
@@ -1205,7 +1151,7 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
     </message>
     <message>
         <source>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehose Mode &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</source>
-        <translation>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; 训练数据上传模式 &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</translation>
+        <translation>&lt;span style=&apos;font-family: &quot;Noto Color Emoji&quot;;&apos;&gt;🔥&lt;/span&gt; Firehose 模式 &lt;span style=&apos;font-family: Noto Color Emoji;&apos;&gt;🔥&lt;/span&gt;</translation>
     </message>
 </context>
 <context>
