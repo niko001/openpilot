@@ -46,10 +46,12 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   profile_list->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
   auto *list_container = new QWidget(this);
+  list_container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   auto *list_layout = new QVBoxLayout(list_container);
   list_layout->setContentsMargins(0, 0, 0, 0);
   list_layout->setSpacing(20);
   list_layout->addWidget(profile_list, 1);
+  list_layout->addStretch(1);
 
   auto *button_layout = new QHBoxLayout();
   button_layout->setContentsMargins(0, 0, 0, 0);
