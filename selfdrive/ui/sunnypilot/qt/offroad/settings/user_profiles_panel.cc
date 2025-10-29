@@ -10,6 +10,7 @@
 #include <QDateTime>
 #include <QHBoxLayout>
 #include <QSignalBlocker>
+#include <QVBoxLayout>
 
 #include "selfdrive/ui/qt/widgets/input.h"
 
@@ -42,19 +43,36 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
       background: #2E6EDE;
     }
   )");
-  addItem(profile_list);
+  profile_list->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+  auto *list_container = new QWidget(this);
+  auto *list_layout = new QVBoxLayout(list_container);
+  list_layout->setContentsMargins(0, 0, 0, 0);
+  list_layout->setSpacing(20);
+  list_layout->addWidget(profile_list, 1);
 
   auto *button_layout = new QHBoxLayout();
+  button_layout->setContentsMargins(0, 0, 0, 0);
   button_layout->setSpacing(20);
 
   add_button = new PushButtonSP(tr("Add Profile"), 450, this);
   remove_button = new PushButtonSP(tr("Remove Profile"), 450, this);
   remove_button->setEnabled(false);
 
-  button_layout->addWidget(add_button, 0, Qt::AlignLeft);
-  button_layout->addWidget(remove_button, 0, Qt::AlignLeft);
-  button_layout->addStretch(1);
-  addItem(button_layout);
+  add_button->setMinimumWidth(0);
+  add_button->setMaximumWidth(QWIDGETSIZE_MAX);
+  add_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  remove_button->setMinimumWidth(0);
+  remove_button->setMaximumWidth(QWIDGETSIZE_MAX);
+  remove_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+  button_layout->addWidget(add_button);
+  button_layout->addWidget(remove_button);
+  button_layout->setStretch(0, 1);
+  button_layout->setStretch(1, 1);
+
+  list_layout->addLayout(button_layout);
+  addItem(list_container);
 
   connect(add_button, &QPushButton::clicked, this, &UserProfilesPanel::addProfile);
   connect(remove_button, &QPushButton::clicked, this, &UserProfilesPanel::removeSelectedProfile);
