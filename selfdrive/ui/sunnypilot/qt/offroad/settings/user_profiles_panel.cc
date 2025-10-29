@@ -13,13 +13,14 @@
 #include <QVBoxLayout>
 
 #include "selfdrive/ui/qt/widgets/input.h"
+#include "selfdrive/ui/sunnypilot/qt/widgets/scrollview.h"
 
 UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   auto *title = new QLabel(tr("User Profiles"));
   title->setStyleSheet("font-size: 70px; font-weight: 600;");
   addItem(title);
 
-  auto *description = new QLabel(tr("Create snapshots of your current sunnypilot settings, then switch back to them later."));
+  auto *description = new QLabel(tr("Create snapshots of your current settings, then switch back to them later."));
   description->setWordWrap(true);
   description->setStyleSheet("font-size: 40px; color: #D0D0D0;");
   addItem(description);
@@ -46,12 +47,10 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   profile_list->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
   auto *list_container = new QWidget(this);
-  list_container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   auto *list_layout = new QVBoxLayout(list_container);
   list_layout->setContentsMargins(0, 0, 0, 0);
   list_layout->setSpacing(20);
   list_layout->addWidget(profile_list, 1);
-  list_layout->addStretch(1);
 
   auto *button_layout = new QHBoxLayout();
   button_layout->setContentsMargins(0, 0, 0, 0);
@@ -74,7 +73,13 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   button_layout->setStretch(1, 1);
 
   list_layout->addLayout(button_layout);
-  addItem(list_container);
+
+  auto *scroll = new ScrollViewSP(list_container, this);
+  scroll->setFrameShape(QFrame::NoFrame);
+  scroll->setWidgetResizable(true);
+  scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  scroll->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  addItem(scroll);
 
   connect(add_button, &QPushButton::clicked, this, &UserProfilesPanel::addProfile);
   connect(remove_button, &QPushButton::clicked, this, &UserProfilesPanel::removeSelectedProfile);
