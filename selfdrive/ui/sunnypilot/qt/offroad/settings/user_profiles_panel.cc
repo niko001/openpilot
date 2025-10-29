@@ -15,18 +15,23 @@
 #include "selfdrive/ui/qt/widgets/input.h"
 
 UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
+  auto *content = new QWidget(this);
+  auto *layout = new QVBoxLayout(content);
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(25);
+
   auto *title = new QLabel(tr("User Profiles"));
   title->setStyleSheet("font-size: 70px; font-weight: 600;");
-  addItem(title);
+  layout->addWidget(title);
 
   auto *description = new QLabel(tr("Create snapshots of your current settings, then switch back to them later."));
   description->setWordWrap(true);
   description->setStyleSheet("font-size: 40px; color: #D0D0D0;");
-  addItem(description);
+  layout->addWidget(description);
 
   active_profile_label = new QLabel(this);
   active_profile_label->setStyleSheet("font-size: 45px; color: #FFFFFF; padding-top: 10px;");
-  addItem(active_profile_label);
+  layout->addWidget(active_profile_label);
 
   profile_list = new QListWidget(this);
   profile_list->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -44,14 +49,7 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
     }
   )");
   profile_list->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-  auto *list_container = new QWidget(this);
-  list_container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  auto *list_layout = new QVBoxLayout(list_container);
-  list_layout->setContentsMargins(0, 0, 0, 0);
-  list_layout->setSpacing(20);
-  list_layout->addWidget(profile_list, 1);
-  list_layout->addSpacing(20);
+  layout->addWidget(profile_list, 1);
 
   auto *button_layout = new QHBoxLayout();
   button_layout->setContentsMargins(0, 0, 0, 0);
@@ -72,11 +70,11 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   button_layout->addWidget(remove_button);
   button_layout->setStretch(0, 1);
   button_layout->setStretch(1, 1);
+  layout->addLayout(button_layout);
 
-  list_layout->addLayout(button_layout);
-  list_layout->addSpacing(20);
+  layout->addSpacing(10);
 
-  addItem(list_container);
+  addItem(content);
 
   connect(add_button, &QPushButton::clicked, this, &UserProfilesPanel::addProfile);
   connect(remove_button, &QPushButton::clicked, this, &UserProfilesPanel::removeSelectedProfile);
@@ -84,6 +82,7 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
 
   refreshProfiles();
 }
+
 
 void UserProfilesPanel::showEvent(QShowEvent *event) {
   ListWidgetSP::showEvent(event);
