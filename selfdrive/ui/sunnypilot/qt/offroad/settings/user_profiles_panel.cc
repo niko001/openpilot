@@ -82,6 +82,7 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   connect(add_button, &QPushButton::clicked, this, &UserProfilesPanel::addProfile);
   connect(remove_button, &QPushButton::clicked, this, &UserProfilesPanel::removeSelectedProfile);
   connect(profile_list, &QListWidget::itemSelectionChanged, this, &UserProfilesPanel::updateSelectionState);
+  connect(profile_list, &QListWidget::itemClicked, this, &UserProfilesPanel::activateProfile);
 
   refreshProfiles();
 }
@@ -177,6 +178,30 @@ void UserProfilesPanel::updateSelectionState() {
   QListWidgetItem *item = profile_list->currentItem();
   const bool selectable = item && (item->flags() & Qt::ItemIsSelectable);
   remove_button->setEnabled(selectable);
+}
+
+void UserProfilesPanel::activateProfile(QListWidgetItem *item) {
+  if (!item || !(item->flags() & Qt::ItemIsSelectable)) {
+    return;
+  }
+
+  const QString name = item->data(Qt::UserRole).toString();
+  if (name.isEmpty()) {
+    return;
+  }
+
+  const QString current = user_profiles::currentProfileName();
+  if (name.compare(current, Qt::CaseInsensitive) == 0) {
+    return;
+  }
+
+  QString error;
+  if (!user_profiles::applyProfile(name, &error)) {
+    showError(error);
+    return;
+  }
+
+  refreshProfiles();
 }
 
 void UserProfilesPanel::showError(const QString &message) {

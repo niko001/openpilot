@@ -27,6 +27,7 @@ private slots:
   void addProfile();
   void removeSelectedProfile();
   void updateSelectionState();
+  void activateProfile(QListWidgetItem *item);
 
 private:
   void showError(const QString &message);
