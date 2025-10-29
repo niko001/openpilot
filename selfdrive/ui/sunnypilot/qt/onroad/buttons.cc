@@ -7,11 +7,9 @@
 
 #include "selfdrive/ui/sunnypilot/qt/onroad/buttons.h"
 
-#include <QAction>
 #include <QFont>
-#include <QMenu>
 #include <QPainter>
-#include <QStyleOption>
+#include <QStringList>
 #include <QtGlobal>
 
 #include "selfdrive/ui/qt/util.h"
@@ -58,7 +56,7 @@ void ExperimentalButtonSP::drawButton(QPainter &p) {
   }
 }
 
-UserProfileButton::UserProfileButton(QWidget *parent) : QPushButton(parent), menu(new QMenu(this)) {
+UserProfileButton::UserProfileButton(QWidget *parent) : QPushButton(parent) {
   setCursor(Qt::PointingHandCursor);
   setFlat(true);
   setFocusPolicy(Qt::NoFocus);
@@ -67,8 +65,7 @@ UserProfileButton::UserProfileButton(QWidget *parent) : QPushButton(parent), men
 
   user_icon = loadPixmap("../assets/icons/monitoring.png", QSize(72, 72));
 
-  connect(this, &QPushButton::clicked, this, &UserProfileButton::showSelectorMenu);
-  connect(menu, &QMenu::triggered, this, &UserProfileButton::handleTriggered);
+  connect(this, &QPushButton::clicked, this, &UserProfileButton::showSelectorDialog);
 
   profile_timer.start();
   refresh(true);
@@ -89,78 +86,36 @@ void UserProfileButton::refresh(bool reload_list) {
   }
 
   if (reload_list) {
-    auto new_profiles = user_profiles::listProfiles();
-    bool changed = profiles.size() != new_profiles.size();
-    if (!changed) {
-      for (int i = 0; i < profiles.size(); ++i) {
-        if (profiles.at(i).name.compare(new_profiles.at(i).name, Qt::CaseInsensitive) != 0) {
-          changed = true;
-          break;
-        }
-      }
-    }
-    if (changed) {
-      profiles = new_profiles;
-      rebuildMenu();
-    }
-
+    profiles = user_profiles::listProfiles();
   }
 }
 
-void UserProfileButton::showSelectorMenu() {
+void UserProfileButton::showSelectorDialog() {
   refresh(true);
 
-  if (menu->isEmpty()) {
-    QAction *placeholder = menu->addAction(tr("No saved profiles yet"));
-    placeholder->setEnabled(false);
-  }
-
-  QSize menu_size = menu->sizeHint();
-  QPoint popup_point = mapToGlobal(QPoint(width(), height()));
-  popup_point.rx() -= menu_size.width();
-  if (popup_point.x() < 0) {
-    popup_point.setX(0);
-  }
-  menu->popup(popup_point);
-}
-
-void UserProfileButton::handleTriggered(QAction *action) {
-  if (!action || !action->isEnabled()) {
+  if (profiles.isEmpty()) {
+    ConfirmationDialog::alert(tr("No saved profiles yet. Add one from Settings > User Profiles."), this);
     return;
   }
 
-  const QString name = action->data().toString();
-  if (name.isEmpty() || name.compare(current_profile, Qt::CaseInsensitive) == 0) {
+  QStringList options;
+  options.reserve(profiles.size());
+  for (const auto &profile : profiles) {
+    options.push_back(profile.name);
+  }
+
+  const QString selection = MultiOptionDialog::getSelection(tr("Select Profile"), options, current_profile, this);
+  if (selection.isEmpty() || selection.compare(current_profile, Qt::CaseInsensitive) == 0) {
     return;
   }
 
   QString error;
-  if (!user_profiles::applyProfile(name, &error)) {
+  if (!user_profiles::applyProfile(selection, &error)) {
     ConfirmationDialog::alert(error.isEmpty() ? tr("Unable to load the selected profile.") : error, this);
     return;
   }
 
   refresh(true);
-}
-
-void UserProfileButton::rebuildMenu() {
-  menu->clear();
-
-  if (profiles.isEmpty()) {
-    QAction *placeholder = menu->addAction(tr("No saved profiles yet"));
-    placeholder->setEnabled(false);
-    return;
-  }
-
-  for (const auto &profile : profiles) {
-    QAction *action = menu->addAction(profile.name);
-    action->setData(profile.name);
-    if (profile.name.compare(current_profile, Qt::CaseInsensitive) == 0) {
-      QFont f = action->font();
-      f.setBold(true);
-      action->setFont(f);
-    }
-  }
 }
 
 QColor UserProfileButton::badgeColor() const {

@@ -15,9 +15,7 @@
 #include "selfdrive/ui/qt/onroad/buttons.h"
 #include "selfdrive/ui/sunnypilot/qt/util/user_profiles.h"
 
-class QAction;
 class QColor;
-class QMenu;
 
 class ExperimentalButtonSP : public ExperimentalButton {
   Q_OBJECT
@@ -45,16 +43,13 @@ protected:
   void paintEvent(QPaintEvent *event) override;
 
 private slots:
-  void showSelectorMenu();
-  void handleTriggered(QAction *action);
+  void showSelectorDialog();
 
 private:
-  void rebuildMenu();
   QColor badgeColor() const;
 
   QString current_profile;
   QList<user_profiles::ProfileMetadata> profiles;
-  QMenu *menu;
   QPixmap user_icon;
   QElapsedTimer profile_timer;
 };
