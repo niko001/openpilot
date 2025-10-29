@@ -11,7 +11,6 @@
 #include <QHBoxLayout>
 #include <QSignalBlocker>
 
-#include "selfdrive/ui/qt/widgets/confirmation_dialog.h"
 #include "selfdrive/ui/qt/widgets/input.h"
 
 UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
