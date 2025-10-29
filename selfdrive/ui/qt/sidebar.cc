@@ -26,9 +26,6 @@ void Sidebar::drawMetric(QPainter &p, const QPair<QString, QString> &label, QCol
 
 Sidebar::Sidebar(QWidget *parent) : QFrame(parent),
                                      onroad(false),
-#ifdef SUNNYPILOT
-                                     profiles_pressed(false),
-#endif
                                      flag_pressed(false),
                                      settings_pressed(false),
                                      mic_indicator_pressed(false) {
@@ -37,9 +34,6 @@ Sidebar::Sidebar(QWidget *parent) : QFrame(parent),
   settings_img = loadPixmap("../assets/images/button_settings.png", settings_btn.size(), Qt::IgnoreAspectRatio);
   mic_img = loadPixmap("../assets/icons/microphone.png", QSize(30, 30));
   link_img = loadPixmap("../assets/icons/link.png", QSize(60, 60));
-#ifdef SUNNYPILOT
-  user_profiles_img = loadPixmap("../assets/icons/monitoring.png", QSize(60, 60), Qt::KeepAspectRatio);
-#endif
 
   connect(this, &Sidebar::valueChanged, [=] { update(); });
 
@@ -59,11 +53,6 @@ void Sidebar::mousePressEvent(QMouseEvent *event) {
   } else if (settings_btn.contains(event->pos())) {
     settings_pressed = true;
     update();
-#ifdef SUNNYPILOT
-  } else if (profiles_btn.contains(event->pos())) {
-    profiles_pressed = true;
-    update();
-#endif
   } else if (recording_audio && mic_indicator_btn.contains(event->pos())) {
     mic_indicator_pressed = true;
     update();
@@ -71,15 +60,8 @@ void Sidebar::mousePressEvent(QMouseEvent *event) {
 }
 
 void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
-  if (flag_pressed || settings_pressed || mic_indicator_pressed
-#ifdef SUNNYPILOT
-      || profiles_pressed
-#endif
-  ) {
+  if (flag_pressed || settings_pressed || mic_indicator_pressed) {
     flag_pressed = settings_pressed = mic_indicator_pressed = false;
-#ifdef SUNNYPILOT
-    profiles_pressed = false;
-#endif
     update();
   }
   if (onroad && home_btn.contains(event->pos())) {
@@ -88,11 +70,6 @@ void Sidebar::mouseReleaseEvent(QMouseEvent *event) {
     pm->send("bookmarkButton", msg);
   } else if (settings_btn.contains(event->pos())) {
     emit openSettings();
-#ifdef SUNNYPILOT
-  } else if (profiles_btn.contains(event->pos())) {
-    constexpr int kUserProfilesPanelIndex = 3;
-    emit openSettings(kUserProfilesPanelIndex);
-#endif
   } else if (recording_audio && mic_indicator_btn.contains(event->pos())) {
     emit openSettings(2, "RecordAudio");
   }
@@ -160,26 +137,6 @@ void Sidebar::drawSidebar(QPainter &p) {
   p.drawPixmap(settings_btn.x(), settings_btn.y(), settings_img);
   p.setOpacity(onroad && flag_pressed ? 0.65 : 1.0);
   p.drawPixmap(home_btn.x(), home_btn.y(), onroad ? flag_img : home_img);
-#ifdef SUNNYPILOT
-  p.setOpacity(profiles_pressed ? 0.65 : 1.0);
-  p.setPen(Qt::NoPen);
-  p.setBrush(QColor(41, 41, 41));
-  p.drawRoundedRect(profiles_btn, 26, 26);
-
-  int profile_icon_x = profiles_btn.x() + 20;
-  if (!user_profiles_img.isNull()) {
-    int profile_icon_y = profiles_btn.y() + (profiles_btn.height() - user_profiles_img.height()) / 2;
-    p.drawPixmap(profile_icon_x, profile_icon_y, user_profiles_img);
-    profile_icon_x += user_profiles_img.width() + 12;
-  }
-
-  QRect profile_text_rect = profiles_btn.adjusted(profile_icon_x - profiles_btn.x(), 0, -20, 0);
-  profile_text_rect.setLeft(profile_icon_x);
-  p.setOpacity(1.0);
-  p.setPen(Qt::white);
-  p.setFont(InterFont(36, QFont::DemiBold));
-  p.drawText(profile_text_rect, Qt::AlignVCenter | Qt::AlignLeft, tr("Profiles"));
-#endif
   if (recording_audio) {
     p.setBrush(danger_color);
     p.setOpacity(mic_indicator_pressed ? 0.65 : 1.0);
@@ -190,29 +147,24 @@ void Sidebar::drawSidebar(QPainter &p) {
   }
   p.setOpacity(1.0);
 
-  int network_circle_y = 196;
-  QRect net_text_rect = QRect(58, 247, width() - 100, 50);
-#ifdef SUNNYPILOT
-  network_circle_y = profiles_btn.bottom() + 32;
-  net_text_rect.moveTop(network_circle_y + 51);
-#endif
-
   // network
   int x = 58;
   const QColor gray(0x54, 0x54, 0x54);
   for (int i = 0; i < 5; ++i) {
     p.setBrush(i < net_strength ? Qt::white : gray);
-    p.drawEllipse(x, network_circle_y, 27, 27);
+    p.drawEllipse(x, 196, 27, 27);
     x += 37;
   }
 
   p.setFont(InterFont(35));
   p.setPen(QColor(0xff, 0xff, 0xff));
 
+  const QRect r = QRect(58, 247, width() - 100, 50);
+
   if (net_type == "Hotspot") {
-    p.drawPixmap(net_text_rect.x(), net_text_rect.y() + (net_text_rect.height() - link_img.height()) / 2, link_img);
+    p.drawPixmap(r.x(), r.y() + (r.height() - link_img.height()) / 2, link_img);
   } else {
-    p.drawText(net_text_rect, Qt::AlignLeft | Qt::AlignVCenter, net_type);
+    p.drawText(r, Qt::AlignLeft | Qt::AlignVCenter, net_type);
   }
 
 #ifndef SUNNYPILOT

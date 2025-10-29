@@ -44,13 +44,7 @@ protected:
   virtual void drawSidebar(QPainter &p);
 
   QPixmap home_img, flag_img, settings_img, mic_img, link_img;
-#ifdef SUNNYPILOT
-  QPixmap user_profiles_img;
-#endif
   bool onroad, recording_audio, flag_pressed, settings_pressed, mic_indicator_pressed;
-#ifdef SUNNYPILOT
-  bool profiles_pressed;
-#endif
   const QMap<cereal::DeviceState::NetworkType, QString> network_type = {
     {cereal::DeviceState::NetworkType::NONE, tr("--")},
     {cereal::DeviceState::NetworkType::WIFI, tr("Wi-Fi")},
@@ -63,9 +57,6 @@ protected:
 
   const QRect home_btn = QRect(60, 860, 180, 180);
   const QRect settings_btn = QRect(50, 35, 200, 117);
-#ifdef SUNNYPILOT
-  const QRect profiles_btn = QRect(50, 170, 200, 117);
-#endif
   const QRect mic_indicator_btn = QRect(158, 252, 75, 40);
   const QColor good_color = QColor(255, 255, 255);
   const QColor warning_color = QColor(218, 202, 37);
