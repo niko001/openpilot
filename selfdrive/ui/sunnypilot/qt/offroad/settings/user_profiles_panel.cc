@@ -16,6 +16,7 @@
 
 UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   auto *content = new QWidget(this);
+  content->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   auto *layout = new QVBoxLayout(content);
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(25);
@@ -49,7 +50,10 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
     }
   )");
   profile_list->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  layout->addWidget(profile_list, 1);
+  layout->addWidget(profile_list);
+  int list_index = layout->count() - 1;
+  layout->setStretch(list_index, 1);
+  layout->addStretch(1);
 
   auto *button_layout = new QHBoxLayout();
   button_layout->setContentsMargins(0, 0, 0, 0);
@@ -71,8 +75,6 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   button_layout->setStretch(0, 1);
   button_layout->setStretch(1, 1);
   layout->addLayout(button_layout);
-
-  layout->addSpacing(10);
 
   addItem(content);
 
