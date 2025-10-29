@@ -7,7 +7,17 @@
 
 #pragma once
 
+#include <QElapsedTimer>
+#include <QList>
+#include <QPixmap>
+#include <QPushButton>
+
 #include "selfdrive/ui/qt/onroad/buttons.h"
+#include "selfdrive/ui/sunnypilot/qt/util/user_profiles.h"
+
+class QAction;
+class QColor;
+class QMenu;
 
 class ExperimentalButtonSP : public ExperimentalButton {
   Q_OBJECT
@@ -21,4 +31,30 @@ private:
 
   bool dynamic_experimental_control;
   int dec_mpc_mode;
+};
+
+class UserProfileButton : public QPushButton {
+  Q_OBJECT
+
+public:
+  explicit UserProfileButton(QWidget *parent = nullptr);
+  void updateState(const UIState &s);
+  void refresh(bool reload_list = false);
+
+protected:
+  void paintEvent(QPaintEvent *event) override;
+
+private slots:
+  void showSelectorMenu();
+  void handleTriggered(QAction *action);
+
+private:
+  void rebuildMenu();
+  QColor badgeColor() const;
+
+  QString current_profile;
+  QList<user_profiles::ProfileMetadata> profiles;
+  QMenu *menu;
+  QPixmap user_icon;
+  QElapsedTimer profile_timer;
 };

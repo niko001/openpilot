@@ -29,6 +29,9 @@ public:
 private:
   QVBoxLayout *main_layout;
   ExperimentalButton *experimental_btn;
+#ifdef SUNNYPILOT
+  UserProfileButton *user_profile_btn = nullptr;
+#endif
   DriverMonitorRenderer dmon;
   HudRenderer hud;
   ModelRenderer model;

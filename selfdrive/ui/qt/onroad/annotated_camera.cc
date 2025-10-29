@@ -1,6 +1,7 @@
 
 #include "selfdrive/ui/qt/onroad/annotated_camera.h"
 
+#include <QHBoxLayout>
 #include <QPainter>
 #include <algorithm>
 #include <cmath>
@@ -17,13 +18,30 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget *par
   main_layout->setMargin(UI_BORDER_SIZE);
   main_layout->setSpacing(0);
 
+  QHBoxLayout *header_layout = new QHBoxLayout();
+  header_layout->setContentsMargins(0, 0, 0, 0);
+  header_layout->setSpacing(16);
+  header_layout->addStretch(1);
+
+#ifdef SUNNYPILOT
+  user_profile_btn = new UserProfileButton(this);
+  header_layout->addWidget(user_profile_btn, 0, Qt::AlignTop);
+#endif
+
   experimental_btn = new ExperimentalButton(this);
-  main_layout->addWidget(experimental_btn, 0, Qt::AlignTop | Qt::AlignRight);
+  header_layout->addWidget(experimental_btn, 0, Qt::AlignTop);
+
+  main_layout->addLayout(header_layout);
 }
 
 void AnnotatedCameraWidget::updateState(const UIState &s) {
   // update engageability/experimental mode button
   experimental_btn->updateState(s);
+#ifdef SUNNYPILOT
+  if (user_profile_btn != nullptr) {
+    user_profile_btn->updateState(s);
+  }
+#endif
   dmon.updateState(s);
 }
 
