@@ -15,7 +15,7 @@
 #include <QtGlobal>
 
 #include "selfdrive/ui/qt/util.h"
-#include "selfdrive/ui/qt/widgets/confirmation_dialog.h"
+#include "selfdrive/ui/qt/widgets/input.h"
 
 ExperimentalButtonSP::ExperimentalButtonSP(QWidget *parent) : ExperimentalButton(parent) {
   QObject::disconnect(uiState(), &UIState::uiUpdate, this, &ExperimentalButton::updateState);
