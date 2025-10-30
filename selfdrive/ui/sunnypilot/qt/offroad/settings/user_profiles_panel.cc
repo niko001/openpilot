@@ -36,7 +36,7 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
 
   profile_list = new QListWidget(this);
   profile_list->setSelectionMode(QAbstractItemView::SingleSelection);
-  profile_list->setMinimumHeight(600);
+  profile_list->setMinimumHeight(400);
   profile_list->setStyleSheet(R"(
     QListWidget {
       background: #101010;
