@@ -29,6 +29,7 @@ namespace user_profiles {
 namespace {
 
 constexpr char kCurrentProfileParam[] = "UserProfileCurrent";
+constexpr char kDefaultProfileParam[] = "UserProfileDefault";
 const QString kDefaultProfileName = QStringLiteral("Default");
 
 QString normalizeName(const QString &name) {
@@ -184,6 +185,16 @@ bool applyConfig(const QJsonObject &config, QString *error) {
   return true;
 }
 
+
+std::optional<QString> configuredDefaultProfile() {
+  Params params;
+  const std::string stored = params.get(kDefaultProfileParam);
+  if (stored.empty()) {
+    return std::nullopt;
+  }
+  return normalizeName(QString::fromStdString(stored));
+}
+
 }  // namespace
 
 QList<ProfileMetadata> listProfiles() {
@@ -286,6 +297,10 @@ bool deleteProfile(const QString &display_name, QString *error) {
     setCurrentProfileName(QString());
   }
 
+  if (hasConfiguredDefaultProfile() && defaultProfileName().compare(existing->name, Qt::CaseInsensitive) == 0) {
+    clearDefaultProfileName();
+  }
+
   return true;
 }
 
@@ -317,7 +332,8 @@ QString currentProfileName() {
   if (value.empty()) {
     return kDefaultProfileName;
   }
-  return QString::fromStdString(value);
+  QString trimmed = normalizeName(QString::fromStdString(value));
+  return trimmed.isEmpty() ? kDefaultProfileName : trimmed;
 }
 
 void setCurrentProfileName(const QString &display_name) {
@@ -331,7 +347,63 @@ void setCurrentProfileName(const QString &display_name) {
 }
 
 QString defaultProfileName() {
+  if (auto stored = configuredDefaultProfile(); stored.has_value()) {
+    return stored.value();
+  }
   return kDefaultProfileName;
+}
+
+
+bool hasConfiguredDefaultProfile() {
+  return configuredDefaultProfile().has_value();
+}
+
+void setDefaultProfileName(const QString &display_name) {
+  Params params;
+  const QString trimmed = normalizeName(display_name);
+  if (trimmed.isEmpty()) {
+    params.remove(kDefaultProfileParam);
+    return;
+  }
+
+  if (auto existing = profileForName(trimmed); existing.has_value()) {
+    params.put(kDefaultProfileParam, existing->name.toStdString());
+  } else {
+    params.remove(kDefaultProfileParam);
+  }
+}
+
+void clearDefaultProfileName() {
+  Params params;
+  params.remove(kDefaultProfileParam);
+}
+
+void ensureDefaultProfileActive() {
+  static bool applied = false;
+  if (applied) {
+    return;
+  }
+  applied = true;
+
+  auto stored = configuredDefaultProfile();
+  if (!stored.has_value()) {
+    return;
+  }
+
+  const QString target = stored.value();
+  if (!profileExists(target)) {
+    clearDefaultProfileName();
+    return;
+  }
+
+  if (currentProfileName().compare(target, Qt::CaseInsensitive) == 0) {
+    return;
+  }
+
+  QString error;
+  if (!applyProfile(target, &error)) {
+    qWarning() << "Failed to apply default profile" << target << error;
+  }
 }
 
 bool profileExists(const QString &display_name) {

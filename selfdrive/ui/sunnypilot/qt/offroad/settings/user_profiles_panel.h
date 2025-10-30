@@ -7,8 +7,10 @@
 
 #pragma once
 
+#include <QIcon>
 #include <QLabel>
 #include <QListWidget>
+#include <QShowEvent>
 
 #include "selfdrive/ui/sunnypilot/qt/util/user_profiles.h"
 #include "selfdrive/ui/sunnypilot/qt/widgets/controls.h"
@@ -31,10 +33,12 @@ private slots:
 
 private:
   void showError(const QString &message);
+  void setDefaultProfile(const QString &profile_name);
 
   QLabel *active_profile_label = nullptr;
   QListWidget *profile_list = nullptr;
   PushButtonSP *add_button = nullptr;
   PushButtonSP *remove_button = nullptr;
+  QIcon star_filled_icon;
+  QIcon star_empty_icon;
 };
-#include <QShowEvent>

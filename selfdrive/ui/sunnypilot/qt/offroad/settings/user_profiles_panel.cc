@@ -11,6 +11,9 @@
 #include <QHBoxLayout>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
+#include <QPushButton>
+#include <QSize>
+#include <QItemSelectionModel>
 
 #include "selfdrive/ui/qt/widgets/input.h"
 
@@ -20,6 +23,9 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
   auto *layout = new QVBoxLayout(content);
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(25);
+
+  star_filled_icon = QIcon("../../sunnypilot/selfdrive/assets/icons/star-filled.png");
+  star_empty_icon = QIcon("../../sunnypilot/selfdrive/assets/icons/star-empty.png");
 
   auto *title = new QLabel(tr("User Profiles"));
   title->setStyleSheet("font-size: 70px; font-weight: 600;");
@@ -36,7 +42,7 @@ UserProfilesPanel::UserProfilesPanel(QWidget *parent) : ListWidgetSP(parent) {
 
   profile_list = new QListWidget(this);
   profile_list->setSelectionMode(QAbstractItemView::SingleSelection);
-  profile_list->setMinimumHeight(430);
+  profile_list->setMinimumHeight(480);
   profile_list->setStyleSheet(R"(
     QListWidget {
       background: #101010;
@@ -101,26 +107,69 @@ void UserProfilesPanel::refreshProfiles() {
   profile_list->clear();
 
   const auto profiles = user_profiles::listProfiles();
+  const bool has_default = user_profiles::hasConfiguredDefaultProfile();
+  const QString default_profile = user_profiles::defaultProfileName();
+
   if (profiles.isEmpty()) {
     auto *empty_item = new QListWidgetItem(tr("No saved profiles yet."));
     empty_item->setFlags(Qt::NoItemFlags);
     profile_list->addItem(empty_item);
   } else {
-    int selected_row = -1;
-    for (int i = 0; i < profiles.size(); ++i) {
-      const auto &profile = profiles.at(i);
+    QListWidgetItem *active_item = nullptr;
+    for (const auto &profile : profiles) {
       const QDateTime updated = profile.updated_at.isValid() ? profile.updated_at.toLocalTime() : QDateTime();
       const QString subtitle = updated.isValid() ? updated.toString("yyyy-MM-dd HH:mm") : tr("Unknown");
-      auto *item = new QListWidgetItem(QString("%1\n%2").arg(profile.name, subtitle));
+
+      auto *item = new QListWidgetItem(profile_list);
       item->setData(Qt::UserRole, profile.name);
-      profile_list->addItem(item);
+      item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+
+      auto *row = new QWidget(profile_list);
+      auto *row_layout = new QHBoxLayout(row);
+      row_layout->setContentsMargins(20, 15, 20, 15);
+      row_layout->setSpacing(20);
+
+      QString header = profile.name;
+      if (has_default && profile.name.compare(default_profile, Qt::CaseInsensitive) == 0) {
+        header += tr("  (Default)");
+      }
+      auto *info_label = new QLabel(QString("%1\n%2").arg(header, subtitle), row);
+      info_label->setStyleSheet("font-size: 42px; color: white;");
+      info_label->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+      info_label->setAttribute(Qt::WA_TransparentForMouseEvents);
+      row_layout->addWidget(info_label, 1);
+
+      auto *star_btn = new QPushButton(row);
+      star_btn->setFlat(true);
+      star_btn->setCheckable(true);
+      star_btn->setFocusPolicy(Qt::NoFocus);
+      star_btn->setCursor(Qt::PointingHandCursor);
+      star_btn->setIconSize(QSize(56, 56));
+      star_btn->setStyleSheet("QPushButton { border: none; }");
+      const bool is_default = has_default && profile.name.compare(default_profile, Qt::CaseInsensitive) == 0;
+      star_btn->setChecked(is_default);
+      star_btn->setIcon(is_default ? star_filled_icon : star_empty_icon);
+      star_btn->setToolTip(is_default ? tr("Default profile") : tr("Set as default profile"));
+      row_layout->addWidget(star_btn, 0, Qt::AlignRight | Qt::AlignVCenter);
+
+      QObject::connect(star_btn, &QPushButton::clicked, this, [this, profile_name = profile.name](bool checked) {
+        if (checked) {
+          setDefaultProfile(profile_name);
+        } else {
+          setDefaultProfile(QString());
+        }
+      });
+
+      profile_list->setItemWidget(item, row);
+      item->setSizeHint(QSize(0, 150));
 
       if (profile.name.compare(active_profile, Qt::CaseInsensitive) == 0) {
-        selected_row = i;
+        active_item = item;
       }
     }
-    if (selected_row >= 0) {
-      profile_list->setCurrentRow(selected_row);
+
+    if (active_item != nullptr) {
+      profile_list->setCurrentItem(active_item, QItemSelectionModel::ClearAndSelect);
     }
   }
 
@@ -201,6 +250,23 @@ void UserProfilesPanel::activateProfile(QListWidgetItem *item) {
     return;
   }
 
+  refreshProfiles();
+}
+
+void UserProfilesPanel::setDefaultProfile(const QString &profile_name) {
+  if (profile_name.isEmpty()) {
+    user_profiles::clearDefaultProfileName();
+    refreshProfiles();
+    return;
+  }
+
+  if (!user_profiles::profileExists(profile_name)) {
+    showError(tr("Profile \"%1\" was not found.").arg(profile_name));
+    refreshProfiles();
+    return;
+  }
+
+  user_profiles::setDefaultProfileName(profile_name);
   refreshProfiles();
 }
 

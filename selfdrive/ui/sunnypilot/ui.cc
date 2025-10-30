@@ -7,6 +7,7 @@
 
 #include "selfdrive/ui/sunnypilot/ui.h"
 
+#include "selfdrive/ui/sunnypilot/qt/util/user_profiles.h"
 #include "common/watchdog.h"
 
 void UIStateSP::updateStatus() {
@@ -23,6 +24,7 @@ void UIStateSP::updateStatus() {
 }
 
 UIStateSP::UIStateSP(QObject *parent) : UIState(parent) {
+  user_profiles::ensureDefaultProfileActive();
   sm = std::make_unique<SubMaster>(std::vector<const char*>{
     "modelV2", "controlsState", "liveCalibration", "radarState", "deviceState",
     "pandaStates", "carParams", "driverMonitoringState", "carState", "driverStateV2",

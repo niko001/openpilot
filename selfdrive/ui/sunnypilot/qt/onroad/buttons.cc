@@ -85,9 +85,24 @@ void UserProfileButton::refresh(bool reload_list) {
     update();
   }
 
-  if (reload_list) {
-    profiles = user_profiles::listProfiles();
+  const QList<user_profiles::ProfileMetadata> updated_profiles = user_profiles::listProfiles();
+  const bool size_changed = updated_profiles.size() != profiles.size();
+
+  bool names_changed = false;
+  if (!size_changed) {
+    for (int i = 0; i < updated_profiles.size(); ++i) {
+      if (updated_profiles[i].name.compare(profiles[i].name, Qt::CaseInsensitive) != 0) {
+        names_changed = true;
+        break;
+      }
+    }
   }
+
+  if (reload_list || size_changed || names_changed) {
+    profiles = updated_profiles;
+  }
+
+  setEnabled(!profiles.isEmpty());
 }
 
 void UserProfileButton::showSelectorDialog() {

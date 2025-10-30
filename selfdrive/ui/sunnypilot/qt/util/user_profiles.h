@@ -33,6 +33,10 @@ bool applyProfile(const QString &display_name, QString *error = nullptr);
 QString currentProfileName();
 void setCurrentProfileName(const QString &display_name);
 QString defaultProfileName();
+bool hasConfiguredDefaultProfile();
+void setDefaultProfileName(const QString &display_name);
+void clearDefaultProfileName();
+void ensureDefaultProfileActive();
 
 bool profileExists(const QString &display_name);
 QString profileInitial(const QString &display_name);
