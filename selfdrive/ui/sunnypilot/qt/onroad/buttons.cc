@@ -98,6 +98,31 @@ void UserProfileButton::showSelectorDialog() {
     return;
   }
 
+  if (profiles.size() == 2) {
+    const QString current_lower = current_profile.toLower();
+    QString target;
+    for (const auto &profile : profiles) {
+      if (profile.name.toLower() != current_lower) {
+        target = profile.name;
+        break;
+      }
+    }
+
+    if (target.isEmpty()) {
+      // both entries resolve to the current profile; nothing to switch
+      return;
+    }
+
+    QString error;
+    if (!user_profiles::applyProfile(target, &error)) {
+      ConfirmationDialog::alert(error.isEmpty() ? tr("Unable to load the selected profile.") : error, this);
+      return;
+    }
+
+    refresh(true);
+    return;
+  }
+
   QStringList options;
   options.reserve(profiles.size());
   for (const auto &profile : profiles) {
