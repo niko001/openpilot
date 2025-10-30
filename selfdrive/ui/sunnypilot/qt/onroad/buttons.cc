@@ -102,7 +102,9 @@ void UserProfileButton::refresh(bool reload_list) {
     profiles = updated_profiles;
   }
 
-  setEnabled(!profiles.isEmpty());
+  const bool has_switchable_profiles = profiles.size() >= 2;
+  setVisible(has_switchable_profiles);
+  setEnabled(has_switchable_profiles);
 }
 
 void UserProfileButton::showSelectorDialog() {
