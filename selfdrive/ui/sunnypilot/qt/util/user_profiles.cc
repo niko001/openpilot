@@ -8,6 +8,8 @@
 #include "selfdrive/ui/sunnypilot/qt/util/user_profiles.h"
 
 #include <algorithm>
+#include <chrono>
+#include <thread>
 
 #include <QByteArray>
 #include <QDebug>
@@ -195,6 +197,22 @@ std::optional<QString> configuredDefaultProfile() {
   return normalizeName(QString::fromStdString(stored));
 }
 
+void pulseOffroadMode() {
+  Params params;
+  const bool was_enabled = params.getBool("OffroadMode");
+  if (was_enabled) {
+    return;
+  }
+
+  params.putBool("OffroadMode", true);
+
+  std::thread([]() {
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    Params params_inner;
+    params_inner.remove("OffroadMode");
+  }).detach();
+}
+
 }  // namespace
 
 QList<ProfileMetadata> listProfiles() {
@@ -323,6 +341,7 @@ bool applyProfile(const QString &display_name, QString *error) {
   }
 
   setCurrentProfileName(existing->name);
+  pulseOffroadMode();
   return true;
 }
 
