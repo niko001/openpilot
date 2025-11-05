@@ -124,7 +124,7 @@ EVENTS_SP: dict[int, dict[str, Alert | AlertCallbackType]] = {
 
   EventNameSP.silentReverseGear: {
     ET.PERMANENT: Alert(
-      "Reverse\nGear",
+      "Einparken?\nViel Erfolg",
       "",
       AlertStatus.normal, AlertSize.full,
       Priority.LOWEST, VisualAlert.none, AudibleAlert.none, .2, creation_delay=0.5),
