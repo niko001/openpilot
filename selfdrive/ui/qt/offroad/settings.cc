@@ -21,29 +21,43 @@ InfiniteCableTogglesPanel::InfiniteCableTogglesPanel(SettingsWindow *parent) : L
   std::vector<std::tuple<QString, QString, QString, QString, bool>> toggle_defs{
     {
       "EnableCurvatureController",
-      tr("VW MEB: Lateral Correction (Recommended)"),
+      tr("VW: Lateral Correction (Recommended)"),
       tr("Enables curvature PID post-processing additionally to QFK curvature offset<br>"),
       "../assets/icons/chffr_wheel.png",
       false,
     },
     {
       "EnableLongComfortMode",
-      tr("VW MEB: Longitudinal Comfort Mode"),
+      tr("VW: Longitudinal Comfort Mode"),
       tr("Enables longitudinal jerk and accel deviation limit control for safe and comfortable driving<br>"),
       "../assets/icons/chffr_wheel.png",
       false,
     },
     {
       "EnableSpeedLimitControl",
-      tr("VW MEB: Speed Limit Control"),
+      tr("VW: Speed Limit Control"),
       tr("Enables setting maximum speed by speed limit detection<br>"),
       "../assets/icons/speed_limit.png",
       false,
     },
     {
       "EnableSpeedLimitPredicative",
-      tr("VW MEB: Predicative Speed Limit"),
+      tr("VW: Predicative Speed Limit (pACC)"),
       tr("Enables setting predicative speed limit<br>"),
+      "../assets/icons/speed_limit.png",
+      false,
+    },
+	{
+      "EnableSLPredReactToSL",
+      tr("VW: Predicative - Reaction to Speed Limits"),
+      tr("Enables reaction to speed limits as predicative speed limit<br>"),
+      "../assets/icons/speed_limit.png",
+      false,
+    },
+	{
+      "EnableSLPredReactToCurves",
+      tr("VW: Predicative - Reaction to Curves"),
+      tr("Enables reaction to curves as predicative speed limit (Max Speed as per lateral ISO limits)<br>"),
       "../assets/icons/speed_limit.png",
       false,
     },
@@ -52,6 +66,13 @@ InfiniteCableTogglesPanel::InfiniteCableTogglesPanel(SettingsWindow *parent) : L
       tr("VW MEB: Display Battery Details"),
       tr("Display battery detail panel"),
       "../assets/icons/capslock-fill.png",
+      false,
+    },
+	{
+      "ForceRHDForBSM",
+      tr("VW: Force RHD for BSM"),
+      tr("Switch BSM detection side to RHD. Passenger is on the right side."),
+      "../assets/icons/eye_closed.png",
       false,
     },
     {
@@ -75,16 +96,9 @@ InfiniteCableTogglesPanel::InfiniteCableTogglesPanel(SettingsWindow *parent) : L
       "../assets/icons/eye_closed.png",
       false,
     },
-	{
-      "ForceRHDForBSM",
-      tr("Force RHD for BSM"),
-      tr("Switch BSM detection side to RHD. Passenger is on the right side."),
-      "../assets/icons/eye_closed.png",
-      false,
-    },
     {
       "EnableAngleOffset",
-      tr("Enable Steer Angle Offset"),
+      tr("Enable Steer Angle Offset (Testing)"),
       tr("Enables the use of manual steer angle offset selection as start value for params detection."),
       "../assets/icons/eye_closed.png",
       false,
@@ -331,7 +345,7 @@ void TogglesPanel::updateToggles() {
       const QString unavailable = tr("Experimental mode is currently unavailable on this car since the car's stock ACC is used for longitudinal control.");
 
       QString long_desc = unavailable + " " + \
-                          tr("openpilot longitudinal control may come in a future update.");
+                          tr("sunnypilot longitudinal control may come in a future update.");
       if (CP.getAlphaLongitudinalAvailable()) {
         if (is_release) {
           long_desc = unavailable + " " + tr("An alpha version of sunnypilot longitudinal control can be tested, along with Experimental mode, on non-release branches.");
