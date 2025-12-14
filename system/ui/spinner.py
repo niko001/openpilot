@@ -35,11 +35,36 @@ def clamp(value, min_value, max_value):
 class Spinner(Widget):
   def __init__(self):
     super().__init__()
-    self._comma_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png", TEXTURE_SIZE, TEXTURE_SIZE)
+    self._background_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png")
     self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
     self._rotation = 0.0
     self._progress: int | None = None
     self._wrapped_lines: list[str] = []
+
+  def _draw_background(self, rect: rl.Rectangle) -> None:
+    tex_w = float(self._background_texture.width)
+    tex_h = float(self._background_texture.height)
+    if tex_w <= 0.0 or tex_h <= 0.0:
+      return
+
+    scale = max(rect.width / tex_w, rect.height / tex_h)
+    dst_w = tex_w * scale
+    dst_h = tex_h * scale
+
+    dst_rect = rl.Rectangle(
+      rect.x + (rect.width - dst_w) / 2.0,
+      rect.y + (rect.height - dst_h) / 2.0,
+      dst_w,
+      dst_h,
+    )
+    rl.draw_texture_pro(
+      self._background_texture,
+      rl.Rectangle(0.0, 0.0, tex_w, tex_h),
+      dst_rect,
+      rl.Vector2(0.0, 0.0),
+      0.0,
+      rl.WHITE,
+    )
 
   def set_text(self, text: str) -> None:
     if text.isdigit():
@@ -50,6 +75,8 @@ class Spinner(Widget):
       self._wrapped_lines = wrap_text(text, FONT_SIZE, gui_app.width - MARGIN_H)
 
   def _render(self, rect: rl.Rectangle):
+    self._draw_background(rect)
+
     if self._wrapped_lines:
       # Calculate total height required for spinner and text
       spacing = WRAPPED_SPACING
@@ -63,16 +90,14 @@ class Spinner(Widget):
 
     center = rl.Vector2(rect.width / 2.0, center_y)
     spinner_origin = rl.Vector2(TEXTURE_SIZE / 2.0, TEXTURE_SIZE / 2.0)
-    comma_position = rl.Vector2(center.x - TEXTURE_SIZE / 2.0, center.y - TEXTURE_SIZE / 2.0)
 
     delta_time = rl.get_frame_time()
     self._rotation = (self._rotation + DEGREES_PER_SECOND * delta_time) % 360.0
 
-    # Draw rotating spinner and static comma logo
+    # Draw rotating spinner
     rl.draw_texture_pro(self._spinner_texture, rl.Rectangle(0, 0, TEXTURE_SIZE, TEXTURE_SIZE),
                         rl.Rectangle(center.x, center.y, TEXTURE_SIZE, TEXTURE_SIZE),
                         spinner_origin, self._rotation, rl.WHITE)
-    rl.draw_texture_v(self._comma_texture, comma_position, rl.WHITE)
 
     # Display the progress bar or text based on user input
     if self._progress is not None:
