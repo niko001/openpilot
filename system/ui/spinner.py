@@ -12,16 +12,9 @@ from openpilot.system.ui.widgets import Widget
 if gui_app.big_ui():
   PROGRESS_BAR_WIDTH = 1000
   PROGRESS_BAR_HEIGHT = 20
-  TEXTURE_SIZE = 360
-  WRAPPED_SPACING = 50
-  CENTERED_SPACING = 150
 else:
   PROGRESS_BAR_WIDTH = 268
   PROGRESS_BAR_HEIGHT = 10
-  TEXTURE_SIZE = 140
-  WRAPPED_SPACING = 10
-  CENTERED_SPACING = 20
-DEGREES_PER_SECOND = 360.0  # one full rotation per second
 MARGIN_H = 100
 FONT_SIZE = 96
 LINE_HEIGHT = 104
@@ -36,8 +29,6 @@ class Spinner(Widget):
   def __init__(self):
     super().__init__()
     self._background_texture = gui_app.texture("../../sunnypilot/selfdrive/assets/images/spinner_sunnypilot.png")
-    self._spinner_texture = gui_app.texture("images/spinner_track.png", TEXTURE_SIZE, TEXTURE_SIZE, alpha_premultiply=True)
-    self._rotation = 0.0
     self._progress: int | None = None
     self._wrapped_lines: list[str] = []
 
@@ -77,39 +68,20 @@ class Spinner(Widget):
   def _render(self, rect: rl.Rectangle):
     self._draw_background(rect)
 
-    if self._wrapped_lines:
-      # Calculate total height required for spinner and text
-      spacing = WRAPPED_SPACING
-      total_height = TEXTURE_SIZE + spacing + len(self._wrapped_lines) * LINE_HEIGHT
-      center_y = (rect.height - total_height) / 2.0 + TEXTURE_SIZE / 2.0
-    else:
-      # Center spinner vertically
-      spacing = CENTERED_SPACING
-      center_y = rect.height / 2.0
-    y_pos = center_y + TEXTURE_SIZE / 2.0 + spacing
-
-    center = rl.Vector2(rect.width / 2.0, center_y)
-    spinner_origin = rl.Vector2(TEXTURE_SIZE / 2.0, TEXTURE_SIZE / 2.0)
-
-    delta_time = rl.get_frame_time()
-    self._rotation = (self._rotation + DEGREES_PER_SECOND * delta_time) % 360.0
-
-    # Draw rotating spinner
-    rl.draw_texture_pro(self._spinner_texture, rl.Rectangle(0, 0, TEXTURE_SIZE, TEXTURE_SIZE),
-                        rl.Rectangle(center.x, center.y, TEXTURE_SIZE, TEXTURE_SIZE),
-                        spinner_origin, self._rotation, rl.WHITE)
-
-    # Display the progress bar or text based on user input
+    center_x = rect.width / 2.0
     if self._progress is not None:
-      bar = rl.Rectangle(center.x - PROGRESS_BAR_WIDTH / 2.0, y_pos, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT)
+      y_pos = rect.height / 2.0 - PROGRESS_BAR_HEIGHT / 2.0
+      bar = rl.Rectangle(center_x - PROGRESS_BAR_WIDTH / 2.0, y_pos, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT)
       rl.draw_rectangle_rounded(bar, 1, 10, DARKGRAY)
 
       bar.width *= self._progress / 100.0
       rl.draw_rectangle_rounded(bar, 1, 10, rl.WHITE)
     elif self._wrapped_lines:
+      total_height = len(self._wrapped_lines) * LINE_HEIGHT
+      y_pos = (rect.height - total_height) / 2.0
       for i, line in enumerate(self._wrapped_lines):
         text_size = measure_text_cached(gui_app.font(), line, FONT_SIZE)
-        rl.draw_text_ex(gui_app.font(), line, rl.Vector2(center.x - text_size.x / 2, y_pos + i * LINE_HEIGHT),
+        rl.draw_text_ex(gui_app.font(), line, rl.Vector2(center_x - text_size.x / 2, y_pos + i * LINE_HEIGHT),
                         FONT_SIZE, 0.0, rl.WHITE)
 
 
