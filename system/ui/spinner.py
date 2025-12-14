@@ -66,7 +66,7 @@ class Spinner(Widget):
   def _draw_laser_progress_bar(self, rect: rl.Rectangle, progress: int) -> None:
     center_x = rect.width / 2.0
     # Slightly below center to avoid overlapping the background artwork's focal point
-    y_pos = rect.height * 0.77 - PROGRESS_BAR_HEIGHT / 2.0
+    y_pos = rect.height * 0.75 - PROGRESS_BAR_HEIGHT / 2.0
     track = rl.Rectangle(center_x - PROGRESS_BAR_WIDTH / 2.0, y_pos, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT)
 
     # Track with slight shadow so it reads on bright backgrounds
