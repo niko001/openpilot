@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 import pyray as rl
 import select
 import sys
@@ -18,7 +19,12 @@ else:
 MARGIN_H = 100
 FONT_SIZE = 96
 LINE_HEIGHT = 104
-DARKGRAY = (55, 55, 55, 255)
+
+LASER_TRACK_COLOR = rl.Color(0, 0, 0, 120)
+LASER_TRACK_INNER_COLOR = rl.Color(0, 0, 0, 70)
+LASER_BORDER_COLOR = rl.Color(80, 190, 255, 110)
+LASER_CORE_L = rl.Color(70, 240, 255, 235)
+LASER_CORE_R = rl.Color(0, 110, 255, 235)
 
 
 def clamp(value, min_value, max_value):
@@ -57,6 +63,69 @@ class Spinner(Widget):
       rl.WHITE,
     )
 
+  def _draw_laser_progress_bar(self, rect: rl.Rectangle, progress: int) -> None:
+    center_x = rect.width / 2.0
+    y_pos = rect.height / 2.0 - PROGRESS_BAR_HEIGHT / 2.0
+    track = rl.Rectangle(center_x - PROGRESS_BAR_WIDTH / 2.0, y_pos, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT)
+
+    # Track with slight shadow so it reads on bright backgrounds
+    shadow = rl.Rectangle(track.x, track.y + 2.0, track.width, track.height)
+    rl.draw_rectangle_rounded(shadow, 1.0, 10, rl.Color(0, 0, 0, 160))
+    rl.draw_rectangle_rounded(track, 1.0, 10, LASER_TRACK_COLOR)
+
+    inner_pad = max(2.0, track.height * 0.18)
+    inner = rl.Rectangle(track.x + inner_pad, track.y + inner_pad, track.width - 2.0 * inner_pad, track.height - 2.0 * inner_pad)
+    if inner.width > 0.0 and inner.height > 0.0:
+      rl.draw_rectangle_rounded(inner, 1.0, 10, LASER_TRACK_INNER_COLOR)
+
+    fill_w = track.width * (progress / 100.0)
+    if fill_w <= 0.5:
+      rl.draw_rectangle_rounded_lines_ex(track, 1.0, 10, 2, LASER_BORDER_COLOR)
+      return
+
+    fill_w = min(fill_w, track.width)
+
+    t = rl.get_time()
+    pulse = 0.65 + 0.35 * (0.5 + 0.5 * math.sin(t * 5.5))
+    speed = 520.0 if gui_app.big_ui() else 300.0
+
+    glow_h = track.height * 3.0
+    glow_y = track.y + (track.height - glow_h) / 2.0
+
+    sc_x = int(track.x)
+    sc_y = int(glow_y)
+    sc_w = max(1, int(fill_w))
+    sc_h = max(1, int(glow_h))
+    rl.begin_scissor_mode(sc_x, sc_y, sc_w, sc_h)
+
+    # Outer glow layers
+    for i in range(3, 0, -1):
+      layer_h = track.height * (1.0 + i * 0.9)
+      layer_y = track.y + (track.height - layer_h) / 2.0
+      alpha = int((28 + i * 10) * pulse)
+      rl.draw_rectangle_gradient_h(int(track.x), int(layer_y), sc_w, max(1, int(layer_h)),
+                                   rl.Color(0, 210, 255, alpha), rl.Color(0, 80, 255, alpha))
+
+    # Bright core
+    core_h = max(2.0, track.height * 0.55)
+    core_y = track.y + (track.height - core_h) / 2.0
+    rl.draw_rectangle_gradient_h(int(track.x), int(core_y), sc_w, max(1, int(core_h)), LASER_CORE_L, LASER_CORE_R)
+
+    # Moving sparkle highlight
+    sparkle_w = min(160.0, max(40.0, fill_w * 0.35))
+    sparkle_x = track.x + (t * speed) % (fill_w + sparkle_w) - sparkle_w
+    sparkle_h = track.height * 2.4
+    sparkle_y = track.y + (track.height - sparkle_h) / 2.0
+    half = sparkle_w / 2.0
+    rl.draw_rectangle_gradient_h(int(sparkle_x), int(sparkle_y), max(1, int(half)), max(1, int(sparkle_h)),
+                                 rl.Color(255, 255, 255, 0), rl.Color(255, 255, 255, 190))
+    rl.draw_rectangle_gradient_h(int(sparkle_x + half), int(sparkle_y), max(1, int(sparkle_w - half)), max(1, int(sparkle_h)),
+                                 rl.Color(255, 255, 255, 190), rl.Color(255, 255, 255, 0))
+
+    rl.end_scissor_mode()
+
+    rl.draw_rectangle_rounded_lines_ex(track, 1.0, 10, 2, LASER_BORDER_COLOR)
+
   def set_text(self, text: str) -> None:
     if text.isdigit():
       self._progress = clamp(int(text), 0, 100)
@@ -68,15 +137,10 @@ class Spinner(Widget):
   def _render(self, rect: rl.Rectangle):
     self._draw_background(rect)
 
-    center_x = rect.width / 2.0
     if self._progress is not None:
-      y_pos = rect.height / 2.0 - PROGRESS_BAR_HEIGHT / 2.0
-      bar = rl.Rectangle(center_x - PROGRESS_BAR_WIDTH / 2.0, y_pos, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT)
-      rl.draw_rectangle_rounded(bar, 1, 10, DARKGRAY)
-
-      bar.width *= self._progress / 100.0
-      rl.draw_rectangle_rounded(bar, 1, 10, rl.WHITE)
+      self._draw_laser_progress_bar(rect, self._progress)
     elif self._wrapped_lines:
+      center_x = rect.width / 2.0
       total_height = len(self._wrapped_lines) * LINE_HEIGHT
       y_pos = (rect.height - total_height) / 2.0
       for i, line in enumerate(self._wrapped_lines):
