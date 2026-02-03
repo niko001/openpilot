@@ -6,6 +6,7 @@ See the LICENSE.md file in the root directory for more details.
 """
 from enum import IntEnum
 import threading
+import requests
 import time
 import json
 import pyray as rl
@@ -97,6 +98,7 @@ class SunnylinkState:
   def __init__(self):
     self._params = Params()
     self._lock = threading.Lock()
+    self._session = requests.Session()  # reuse session to reduce SSL handshake overhead
     self._running = False
     self._thread = None
     self._sm = messaging.SubMaster(['deviceState'])
@@ -134,12 +136,13 @@ class SunnylinkState:
 
     try:
       token = self._api.get_token()
-      response = self._api.api_get(f"device/{self.sunnylink_dongle_id}/roles", method='GET', access_token=token)
+      response = self._api.api_get(f"device/{self.sunnylink_dongle_id}/roles", method='GET', access_token=token, session=self._session)
       if response.status_code == 200:
-        self._roles = _parse_roles(response.text)
-        self._params.put("SunnylinkCache_Roles", response.text)
-        sponsor_tier = self._get_highest_tier()
+        roles = response.text
+        self._params.put("SunnylinkCache_Roles", roles)
         with self._lock:
+          self._roles = _parse_roles(roles)
+          sponsor_tier = self._get_highest_tier()
           if sponsor_tier != self.sponsor_tier:
             self.sponsor_tier = sponsor_tier
             cloudlog.info(f"Sunnylink sponsor tier updated to {sponsor_tier.name}")
@@ -152,12 +155,12 @@ class SunnylinkState:
 
     try:
       token = self._api.get_token()
-      response = self._api.api_get(f"device/{self.sunnylink_dongle_id}/users", method='GET', access_token=token)
+      response = self._api.api_get(f"device/{self.sunnylink_dongle_id}/users", method='GET', access_token=token, session=self._session)
       if response.status_code == 200:
         users = response.text
         self._params.put("SunnylinkCache_Users", users)
         with self._lock:
-          _parse_users(users)
+          self._users = _parse_users(users)
     except Exception as e:
       cloudlog.exception(f"Failed to fetch sunnylink users: {e} for dongle id {self.sunnylink_dongle_id}")
 

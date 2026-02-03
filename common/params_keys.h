@@ -143,6 +143,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EnableSLPredReactToCurves", {PERSISTENT, BOOL}},
 	{"BatteryDetails", {PERSISTENT, BOOL}},
 	{"ForceRHDForBSM", {PERSISTENT, BOOL}},
+	{"DisableCarSteerAlerts", {PERSISTENT, BOOL}},
 
     // --- sunnypilot params --- //
     {"ApiCache_DriveStats", {PERSISTENT, JSON}},
@@ -157,6 +158,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"CarParamsSPPersistent", {PERSISTENT, BYTES}},
     {"CarPlatformBundle", {PERSISTENT | BACKUP, JSON}},
     {"ChevronInfo", {PERSISTENT | BACKUP, INT, "4"}},
+    {"CompletedSunnylinkConsentVersion", {PERSISTENT, STRING, "0"}},
     {"CustomAccIncrementsEnabled", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"CustomAccLongPressIncrement", {PERSISTENT | BACKUP, INT, "5"}},
     {"CustomAccShortPressIncrement", {PERSISTENT | BACKUP, INT, "1"}},
@@ -166,6 +168,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EnableGithubRunner", {PERSISTENT | BACKUP, BOOL}},
     {"GreenLightAlert", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"GithubRunnerSufficientVoltage", {CLEAR_ON_MANAGER_START , BOOL}},
+    {"HasAcceptedTermsSP", {PERSISTENT, STRING, "0"}},
     {"HideVEgoUI", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"IntelligentCruiseButtonManagement", {PERSISTENT | BACKUP , BOOL}},
     {"InteractivityTimeout", {PERSISTENT | BACKUP, INT, "0"}},
@@ -178,12 +181,12 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"OffroadMode", {CLEAR_ON_MANAGER_START, BOOL}},
     {"Offroad_TiciSupport", {CLEAR_ON_MANAGER_START, JSON}},
     {"OnroadScreenOffBrightness", {PERSISTENT | BACKUP, INT, "0"}},
-    {"OnroadScreenOffControl", {PERSISTENT | BACKUP, BOOL}},
     {"OnroadScreenOffTimer", {PERSISTENT | BACKUP, INT, "15"}},
     {"OnroadUploads", {PERSISTENT | BACKUP, BOOL, "1"}},
     {"QuickBootToggle", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"QuietMode", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"RainbowMode", {PERSISTENT | BACKUP, BOOL, "0"}},
+    {"RocketFuel", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"ShowAdvancedControls", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"ShowTurnSignals", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"StandstillTimer", {PERSISTENT | BACKUP, BOOL, "0"}},
@@ -225,16 +228,19 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"SubaruStopAndGo", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"SubaruStopAndGoManualParkingBrake", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"TeslaCoopSteering", {PERSISTENT | BACKUP, BOOL, "0"}},
+    {"ToyotaEnforceStockLongitudinal", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     {"DynamicExperimentalControl", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BlindSpot", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     // sunnypilot model params
+    {"CameraOffset", {PERSISTENT | BACKUP, FLOAT, "0.0"}},
     {"LagdToggle", {PERSISTENT | BACKUP, BOOL, "1"}},
     {"LagdToggleDelay", {PERSISTENT | BACKUP, FLOAT, "0.2"}},
     {"LagdValueCache", {PERSISTENT, FLOAT, "0.2"}},
     {"LaneTurnDesire", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"LaneTurnValue", {PERSISTENT | BACKUP, FLOAT, "19.0"}},
+    {"PlanplusControl", {PERSISTENT | BACKUP, FLOAT, "1.0"}},
 
     // mapd
     {"MapAdvisorySpeedLimit", {CLEAR_ON_ONROAD_TRANSITION, FLOAT}},
